@@ -76,7 +76,7 @@ public class Looter {
         if (player.getLevel() < 20) {
             return ctmManager.goToAsCaster(unitObject);
         } else {
-            return ctmManager.goTo(unitObject, wowInstance, nextPoint);
+            return ctmManager.goTo(unitObject, wowInstance, nextPoint, player.getLevel());
         }
     }
 }

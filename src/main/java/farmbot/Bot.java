@@ -7,6 +7,7 @@ import java.util.Random;
 
 import farmbot.Pathing.BotPath;
 import farmbot.Pathing.FarmList;
+import farmbot.Pathing.GlobalGraph;
 import farmbot.Pathing.Graph;
 import farmbot.Pathing.Graph.Vertex;
 import farmbot.Pathing.Path;
@@ -37,6 +38,7 @@ class Bot {
     private final Graph graph;
     private final Fighter fighter;
     private final TargetManager targetManager;
+    private final GlobalGraph globalGraph;
     private FarmList farmList;
 
     Bot(String[] args) {
@@ -48,12 +50,14 @@ class Bot {
         this.healer = new Healer(player, wowInstance);
         this.graph = new Graph();
         this.targetManager = new TargetManager(graph, player, objectManager);
-        this.fighter = new Fighter(player, objectManager, ctmManager, wowInstance, healer, graph, targetManager);
+        this.fighter = new Fighter(player, ctmManager, wowInstance, healer, graph, targetManager);
         this.movement = new Movement(player, healer, ctmManager, wowInstance, fighter, targetManager);
         Looter.configure(player, ctmManager, wowInstance);
         this.random = new Random();
         killGrayMobs = BotPath.killGrayMobs(args);
         farmList = configureFarmList();
+        globalGraph = new GlobalGraph();
+        globalGraph.buildGlobalGraph();
         new Thread(new CloseHandler()).start();
     }
 
@@ -71,49 +75,59 @@ class Bot {
             lastTimeSell = repairAndSellItems(lastTimeSell);
             prevBuff = makeBuffs(prevBuff);
 
-            Point3D nearestPointToPlayer = graph.getNearestPointTo(player).getKey();
             if (!player.isDead()) {
                 farmList = checkChangingFarmList(farmList);
             } else if (player.isDead() && movement.getCorpseCoordinate() != null) {
-                goToTheCorpse(nearestPointToPlayer);
+                goToTheCorpse();
             }
             //even if movement.getCorpseCoordinate() != null, because bugs + smth strange always can happen, that troop not there where is coordinates
             if (player.isDead()) {
                 movement.ress();
-                goToRandomPoint(nearestPointToPlayer);
+                goToRandomPoint();
             }
             if (player.isInCombat()) {
                 List<UnitObject> enemies = targetManager.getMobsForAttack();
                 fighter.killListOfMobs(enemies);
             }
-            if (!tryFindNearestMobToKill(nearestPointToPlayer)) {
+            if (!tryFindNearestMobToKill()) {
                 countDidntFindMob++;
             }
             if (countDidntFindMob == 500) {
-                goToRandomPoint(nearestPointToPlayer);
+                objectManager.refillUnits();
+                if (!tryFindNearestMobToKill()) {
+                    goToRandomPoint();
+                }
                 countDidntFindMob = 0;
             }
         }
     }
 
-    private boolean tryFindNearestMobToKill(Point3D nearestPointToPlayer) {
-        objectManager.refillUnits();
+    private boolean tryFindNearestMobToKill() {
         UnitObject nearestMobForAttack = targetManager.getNearestMobForAttack();
         healer.regenMana();
         if (nearestMobForAttack != null) {
-            Point3D nearestPointToMob = graph.getNearestPointTo(nearestMobForAttack).getKey();
-            makeRoute(nearestMobForAttack, nearestPointToPlayer, nearestPointToMob, null);
-            if (nearestMobForAttack.getHealth() == 100) {
-                player.target(nearestMobForAttack);
-                fighter.kill(nearestPointToMob, nearestMobForAttack);
+            Point3D nearestPointToMob = globalGraph.getNearestPointTo(nearestMobForAttack).getKey();
+            double distance = nearestPointToMob.distance(nearestMobForAttack.getCoordinates());
+            logger.info("distance from nearestPointInGraph to mob is {}", distance);
+            if (distance < 10) {
+                makeRoute(nearestMobForAttack, nearestPointToMob, null);
+                if (nearestMobForAttack.getHealth() == 100) {
+                    player.target(nearestMobForAttack);
+                    fighter.kill(nearestPointToMob, nearestMobForAttack);
+                } else {
+                    logger.info("mob health is not 100%, so skip it");
+                }
+                objectManager.refillUnits();
+                return true;
             } else {
-                logger.info("mob health is not 100%, so skip it");
+                objectManager.removeUnit(nearestMobForAttack.getGuid());
+                return false;
             }
-            return true;
         } else {
 //            Utils.sleeping(player, 10000);
 //            goToRandomPoint(nearestPointToPlayer);
             logger.info("didnt find any mob");
+            //objectManager.refillUnits();
             return false;
         }
     }
@@ -143,9 +157,8 @@ class Bot {
                 healer);
             if (System.currentTimeMillis() - lastTimeSell > 4800000L) {
                 logger.error("going to sell items, passed enough time");
-                Point3D start = graph.getNearestPointTo(player).getKey();
-                nearestPointToPlayer = graph.getNearestPointTo(seller.getPath().get(0)).getKey();
-                makeRoute(null, start, nearestPointToPlayer, null);
+                nearestPointToPlayer = globalGraph.getNearestPointTo(seller.getPath().get(0)).getKey();
+                makeRoute(null, nearestPointToPlayer, null);
                 seller.goToSellAndComeBack();
                 lastTimeSell = System.currentTimeMillis();
             }
@@ -172,10 +185,10 @@ class Bot {
     }
 
     //TODO: move to Movement
-    private void goToTheCorpse(Point3D nearestPointToPlayer) {
+    private void goToTheCorpse() {
         logger.info("player is dead, trying to find own corpse");
-        Point3D nearestPointToTroop = graph.getNearestPointTo(movement.getCorpseCoordinate()).getKey();
-        makeRoute(null, nearestPointToPlayer, nearestPointToTroop, movement.getCorpseCoordinate());
+        Point3D nearestPointToTroop = globalGraph.getNearestPointTo(movement.getCorpseCoordinate()).getKey();
+        makeRoute(null, nearestPointToTroop, movement.getCorpseCoordinate());
         if (!player.isDead()) {
             movement.resetCorpseCoordinate();
         }
@@ -198,15 +211,10 @@ class Bot {
     }
 
     //TODO: move somewhere
-    private void goToRandomPoint(Point3D nearestPointToPlayer) {
+    private void goToRandomPoint() {
         logger.error("didn't find any mob near to the graph, try go to random vertex");
         Point3D finish = graph.getRandomCoordinates();
-        double v = Navigation.evaluateDistanceFromTo(player.getCoordinates(), finish);
-        if (v > 2600000) { //too far away to the point
-            //makeGlobalGraph
-        }
-        makeRoute(null, nearestPointToPlayer, finish, null);
-        //delete GlobalGraph
+        makeRoute(null, finish, null);
     }
 
     //TODO: move somewhere
@@ -219,15 +227,14 @@ class Bot {
     //TODO: move to Movemenet
     private void makeRoute(
         UnitObject nearestMobForAttack,
-        Point3D nearestPointToPlayer,
         Point3D pointToGo,
         Point3D finishPoint)
     {
         if ((!farmList.isRunFreely()) || nearestMobForAttack == null) {
-            List<Vertex> shortestPath = graph.getShortestPath(nearestPointToPlayer, pointToGo);
+            List<Vertex> shortestPath = globalGraph.getShortestPathFromPlayerToPoint(player, pointToGo);
             if (finishPoint != null) {
                 logger.info("add finishPoint=" + finishPoint + " to our path");
-                shortestPath.add(new Vertex(finishPoint, graph.getVertices().size(), null));
+                shortestPath.add(new Vertex(finishPoint));
             }
             logger.info("shortestPath.size()=" + shortestPath.size());
             for (Vertex v : shortestPath) {

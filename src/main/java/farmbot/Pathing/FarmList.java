@@ -36,7 +36,8 @@ public enum FarmList {
     NEEDLES_BOTTON_SPIRIT(28, 35, "30-32_needles", "34-35_needles", null, true),
     NEEDLES_BOTTOM(36, 40, "34-35_needles", null, null, false),
     GADGEDZAN(41, 44, "41_gadgetzan", "45-47_tanaris", null, true),
-    TANARIS_SECOND_SPIRIT(45, 50, "45-47_tanaris", null, null, true),
+    TANARIS_SECOND_SPIRIT(45, 49, "45-47_tanaris", "48-50_ungoro", null, true),
+    UNGORO(50, 55, "48-50_ungoro", null, null, true),
     SALVANAR(64, 70, "sylvanar_farm", null, "salvanar_repair", false),
     ANY(1, 70, "", null, null, false);
 

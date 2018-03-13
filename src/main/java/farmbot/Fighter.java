@@ -14,7 +14,6 @@ import util.Utils;
 import winapi.components.WinKey;
 import wow.WowInstance;
 import wow.memory.CtmManager;
-import wow.memory.ObjectManager;
 import wow.memory.objects.CreatureObject;
 import wow.memory.objects.Player;
 import wow.memory.objects.UnitObject;
@@ -22,7 +21,6 @@ import wow.memory.objects.UnitObject;
 public class Fighter {
     private static final Logger logger = LoggerFactory.getLogger(Fighter.class);
     private final Player player;
-    private final ObjectManager objectManager;
     private final CtmManager ctmManager;
     private final WowInstance wowInstance;
     private final Healer healer;
@@ -31,7 +29,6 @@ public class Fighter {
 
     Fighter(
         Player player,
-        ObjectManager objectManager,
         CtmManager ctmManager,
         WowInstance wowInstance,
         Healer healer,
@@ -39,7 +36,6 @@ public class Fighter {
         TargetManager targetManager)
     {
         this.player = player;
-        this.objectManager = objectManager;
         this.ctmManager = ctmManager;
         this.wowInstance = wowInstance;
         this.healer = healer;
@@ -68,7 +64,6 @@ public class Fighter {
             int prevHealth = -1;
             int countNotSuccesGoToMob = 0;
             state.updateInCombat();
-
             for (; state.getTargetHealth() > 90 || state.isInCombat() || state.getTargetHealth() > 0; Utils.sleep(10L)) {
                 state.updateInCombat();
                 if (state.isInCombat()
@@ -77,80 +72,66 @@ public class Fighter {
                     ctmManager.stop();
                     break;
                 }
-
                 ++cnt;
                 if (cnt % 100 == 0) {
                     state.updateComboPoints();
                     state.updateEnergy();
                 }
-
                 if (cnt % 500 == 0 && state.updateIsDead()) {
                     logger.info("died, targetHealth=" + state.getTargetHealth());
                     break;
                 }
-
                 if (cnt % 15 == 0) {
                     healer.heal(state.getTarget());
                 }
-
                 if (cnt % 20 == 0) {
                     state.updatePlayerTarget();
                 }
-
                 if (cnt % 300 == 0) {
                     System.out.println("face to target");
                     ctmManager.face(state.getTarget());
                     Utils.sleep(100);
                 }
-
                 if (cnt < 100 && cnt % 25 == 0 || cnt % 100 == 0) {
                     boolean success = Looter.goTo(state.getTarget(), nextPoint);
                     if (player.getLevel() < 20 && cnt % 200 == 0) {
                         ctmManager.face(state.getTarget());
                     }
-
                     if (!success) {
                         logger.info("not success go to mob");
                         ++countNotSuccesGoToMob;
                         logger.info("countNotSuccessGoToMob=" + countNotSuccesGoToMob);
                     }
                 }
-
                 if (countNotSuccesGoToMob > 7) {
                     logger.info("quit from findNearestMobAndAttack because countNotSuccesGoToMob=" + countNotSuccesGoToMob);
 
                     break;
                 }
-
                 if (cnt % 1000 == 0) {
                     if (state.getTargetHealth() == prevHealth) {
                         logger.info("quit from findNearestMobAndAttack because target's hp doesn't change");
                         wowInstance.click(WinKey.S, 10000L);
                         break;
                     }
-
                     prevHealth = state.getTargetHealth();
                 }
-
                 if (cnt % 20 == 0) {
                     state.updateInCombat();
                 }
-
                 if (cnt % 300 == 0) {
                     findNextMobInFight(state);
+                    state.updatePlayerTarget();
                 }
-
                 unitsForLoot.add(state.getTarget());
                 if (cnt % 50 == 0) {
                     state.updateTargetHealth();
                     castSpell(state.getTargetHealth(), state.getComboPoints(), state.getEnergy(), cnt % 300 == 0);
                 }
             }
-
             if (!player.isDead()) {
                 Looter.getLoot(unitsForLoot);
             }
-
         }
     }
 

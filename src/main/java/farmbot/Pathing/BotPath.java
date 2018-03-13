@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,9 +39,9 @@ public class BotPath {
     }
 
     public static Path getPathFromFile(String fileName) {
-        fileName = "routes\\" + fileName;
+        fileName = "routes" + File.separator + fileName;
         Path path = getPath(fileName);
-        logger.info("path.size()=" + path.getPoints().size());
+        logger.info("getPathFromFile path.size()=" + path.getPoints().size());
         return path;
     }
 
@@ -55,6 +56,7 @@ public class BotPath {
             paths.add(path);
         }
         System.out.println(Arrays.toString(files));
+        paths.sort(Comparator.comparing(Path::getFileName));
         return paths;
     }
 
@@ -64,6 +66,25 @@ public class BotPath {
         System.out.println();
         System.out.println();
         globalGraph.buildGlobalGraph();
+        globalGraph.floyd();
+/*
+        for (; ; ) {
+            // globalGraph.buildGlobalGraph(); зависание jvm? what?
+            long start = System.currentTimeMillis();
+            globalGraph.floyd();
+            System.out.println("time:" + (System.currentTimeMillis() - start));
+        }
+        */
+
+        //add some stupid test that we have paths.size > 0
+        Path pathFromFile = getPathFromFile("48-50_ungoro");
+        Point3D point3D = pathFromFile.getPoints().get(5);
+
+//        List<Graph.Vertex> vertices = globalGraph.XXXTest(new Point3D(-6735.23046875, -2138.382080078125, -270.9570007324219), point3D);
+        /*
+         */
+        List<Graph.Vertex> vertices = globalGraph.XXXTest(new Point3D(-7203.90185546875, -2436.10302734375, -218.1342010498047), point3D); //на дорожке где-то (from spirit)
+        vertices.forEach(System.out::println);
     }
 
     public static boolean killGrayMobs(String[] args) {

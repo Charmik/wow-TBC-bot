@@ -1,6 +1,7 @@
 package wow.memory.objects;
 
 import com.sun.jna.Memory;
+import javafx.geometry.Point3D;
 import wow.memory.Address;
 import wow.memory.MemoryAware;
 import wow.memory.ObjectManager.ObjectType;
@@ -86,5 +87,9 @@ public abstract class WowObject extends MemoryAware {
     @Override
     public int hashCode() {
         return (int) (guid ^ (guid >>> 32));
+    }
+
+    public Point3D getCoordinates() {
+        return new Point3D((double) getX(), (double) getY(), (double) getZ());
     }
 }

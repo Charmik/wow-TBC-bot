@@ -19,6 +19,7 @@ public class Navigation {
 
     private static float NEAR_COORDS_DIFFERENCE = 2.0f;
     private static float NEAR_COORDS_DIFFERENCE_MOB = 4.0f;
+    private static float NEAR_COORDS_DIFFERENCE_MOB_WITF_FF = 10.0f;
     private static float NEAR_COORDS_DIFFERENCE_AS_CASTER = 900;
     private static float IS_MOB_NEAR = 40.0f;
     private static float IS_NEAR_TO_POINT = 2.0f;
@@ -84,7 +85,7 @@ public class Navigation {
         float xCoord = firstUnit.x - secondUnit.x;
         float yCoord = firstUnit.y - secondUnit.y;
         float zCoord = firstUnit.z - secondUnit.z;
-        return Math.pow(xCoord, 2.0) + Math.pow(yCoord, 2.0) + Math.pow(zCoord, 2.0);
+        return Math.sqrt(Math.pow(xCoord, 2.0) + Math.pow(yCoord, 2.0) + Math.pow(zCoord, 2.0));
     }
 
     public static boolean areNear(
@@ -99,11 +100,23 @@ public class Navigation {
 
     public static boolean areNear(
         Coordinates2D playerCoords,
-        WowObject object)
+        WowObject object,
+        int level)
     {
         Coordinates2D objectCoords = get2DCoordsFor(object);
-        return getCoordsXDifference(playerCoords, objectCoords) <= NEAR_COORDS_DIFFERENCE_MOB
-            && getCoordsYDifference(playerCoords, objectCoords) <= NEAR_COORDS_DIFFERENCE_MOB;
+        float f = NEAR_COORDS_DIFFERENCE_MOB;
+        if (level >= 30) {
+            f = NEAR_COORDS_DIFFERENCE_MOB_WITF_FF;
+        }
+        return getCoordsXDifference(playerCoords, objectCoords) <= f
+            && getCoordsYDifference(playerCoords, objectCoords) <= f;
+    }
+
+    public static boolean areNear(
+        Coordinates2D playerCoords,
+        WowObject object)
+    {
+        return areNear(playerCoords, object, -1);
     }
 
     public static boolean areNearAsCaster(

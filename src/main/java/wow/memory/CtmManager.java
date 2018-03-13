@@ -73,11 +73,12 @@ public final class CtmManager extends MemoryAware {
     public boolean goTo(
         WowObject object,
         WowInstance wowInstance,
-        Point3D nextPoint)
+        Point3D nextPoint,
+        int level)
     {
         int stuckCounter = 0;
         Coordinates2D initialPosition = Navigation.get2DCoordsFor(this.player);
-        while (!Navigation.areNear(initialPosition, object)) {
+        while (!Navigation.areNear(initialPosition, object, level)) {
             moveTo(object);
             if (nextPoint != null) {
                 double distanceToObject = Navigation.evaluateDistanceFromTo(this.player.getCoordinates(), nextPoint);

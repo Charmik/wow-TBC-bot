@@ -74,7 +74,7 @@ public class Graph {
         int prevSize = vertices.size();
         vertices.add(new Vertex(path.getPoints().get(0), vertices.size(), path.getFileName()));
         for (int i = 1; i < path.getPoints().size(); i++) {
-            Vertex prevVertex = vertices.get(i - 1);
+            Vertex prevVertex = vertices.get(vertices.size() - 1);
             Vertex currentVertex = new Vertex(path.getPoints().get(i), prevSize + i, path.getFileName());
             prevVertex.add(currentVertex);
             currentVertex.add(prevVertex);
@@ -114,7 +114,6 @@ public class Graph {
         Vertex last,
         List<Vertex> vertices)
     {
-
         Pair<Vertex, Double> firstNearest = getNearestPointTo(first.getCoordinates(), vertices);
         addEdge(first, firstNearest);
         Pair<Vertex, Double> lastNearest = getNearestPointTo(last.getCoordinates(), vertices);
@@ -125,14 +124,14 @@ public class Graph {
         Vertex newVertex,
         Pair<Vertex, Double> nearestPointInGraph)
     {
-        if (nearestPointInGraph.getValue() < 10000) {
-            logger.debug("merge files: newFile=" + newVertex.fileName + " oldFile=" + nearestPointInGraph.getKey().fileName);
+        if (nearestPointInGraph.getValue() < 110) {
+            logger.info("merge: newFile=" + newVertex.fileName + " oldFile=" + nearestPointInGraph.getKey().fileName);
             newVertex.add(nearestPointInGraph.getKey());
             nearestPointInGraph.getKey().add(newVertex);
         }
     }
 
-    void deleteDuplicateVertexes() {
+    private void deleteDuplicateVertexes() {
         KDTree tree = new KDTree(3);
         for (Vertex vertex : vertices) {
             double arr[] = new double[3];
@@ -250,17 +249,25 @@ public class Graph {
     }
 
     public void floyd() {
+        initFloyd();
+        initDistanceInMatrix();
+        processingFloyd();
+    }
+
+    private void initFloyd() {
         int size = vertices.size();
         d = new double[size][size];
         p = new int[size][size];
 
-        int k;
-        for (k = 0; k < size; ++k) {
+        for (int k = 0; k < size; ++k) {
             Arrays.fill(d[k], 1.7976931348623157E308D);
             Arrays.fill(p[k], -1);
             d[k][k] = 0.0D;
         }
-        for (k = 0; k < vertices.size(); ++k) {
+    }
+
+    private void initDistanceInMatrix() {
+        for (int k = 0; k < vertices.size(); ++k) {
             Vertex v = vertices.get(k);
             Vertex u = null;
             try {
@@ -274,24 +281,44 @@ public class Graph {
                 throw e;
             }
         }
-        for (k = 0; k < size; ++k) {
-            for (int i = 0; i < size; ++i) {
-                for (int j = 0; j < size; ++j) {
-                    if (d[i][k] < 1.7976931348623157E308D && d[k][j] < 1.7976931348623157E308D && d[i][k] + d[k][j] < d[i][j]) {
-                        d[i][j] = d[i][k] + d[k][j];
-                        p[i][j] = p[k][j];
-                    }
-                }
+    }
+
+    private void processingFloyd() {
+        for (int k = 0; k < vertices.size(); ++k) {
+            for (int i = 0; i < vertices.size(); ++i) {
+                updateDistances(k, i);
             }
         }
+    }
+
+    private void updateDistances(
+        int k,
+        int i)
+    {
+        for (int j = 0; j < vertices.size(); ++j) {
+            if (d[i][k] < 1.7976931348623157E308D && d[k][j] < 1.7976931348623157E308D && d[i][k] + d[k][j] < d[i][j]) {
+                d[i][j] = d[i][k] + d[k][j];
+                p[i][j] = p[k][j];
+            }
+        }
+    }
+
+    public List<Vertex> getShortestPathFromPlayerToPoint(
+        Player player,
+        Point3D finish)
+    {
+        logger.info("player.getCoordinates()=" + player.getCoordinates());
+        return getShortestPath(getNearestPointTo(player).getKey(), finish);
     }
 
     public List<Vertex> getShortestPath(
         Point3D start,
         Point3D finish)
     {
-        Optional<Vertex> startVertex = vertices.stream().filter((v) -> v.coordinates.equals(start)).findAny();
-        Optional<Vertex> finishVertex = vertices.stream().filter((v) -> v.coordinates.equals(finish)).findAny();
+        Point3D startInGraph = getNearestPointTo(start).getKey();
+        Point3D finishInGraph = getNearestPointTo(finish).getKey();
+        Optional<Vertex> startVertex = vertices.stream().filter((v) -> v.coordinates.equals(startInGraph)).findAny();
+        Optional<Vertex> finishVertex = vertices.stream().filter((v) -> v.coordinates.equals(finishInGraph)).findAny();
         if (startVertex.isPresent() && finishVertex.isPresent()) {
             return getShortestPath(startVertex.get().index, finishVertex.get().index);
         } else {
@@ -313,15 +340,12 @@ public class Graph {
     {
         List<Vertex> list = new ArrayList<>();
         list.add(u);
-
         for (int prev = p[v.index][u.index]; prev != v.index && prev != -1; prev = p[v.index][prev]) {
             list.add(vertices.get(prev));
         }
-
         if (!v.equals(u)) {
             list.add(v);
         }
-
         Collections.reverse(list);
         return list;
     }
@@ -355,6 +379,11 @@ public class Graph {
             this.fileName = fileName;
         }
 
+        public Vertex(Point3D coordinates)
+        {
+            this(coordinates, -1, null);
+        }
+
         public Point3D getCoordinates() {
             return coordinates;
         }
@@ -369,6 +398,7 @@ public class Graph {
                 "coordinates=" + coordinates +
                 ", index=" + index +
                 ", visit=" + visit +
+                ", fileName=" + fileName +
                 '}';
         }
     }
