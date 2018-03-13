@@ -1,8 +1,3 @@
-//
-// Source code recreated from a .class file by IntelliJ IDEA
-// (powered by Fernflower decompiler)
-//
-
 package wow.memory.objects;
 
 import java.awt.geom.Point2D.Double;
