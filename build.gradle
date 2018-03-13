@@ -35,16 +35,18 @@ sourceCompatibility = 1.8
 
 repositories {
     mavenCentral()
+    maven {
+        url "https://raw.githubusercontent.com/alexeygrigorev/maven-repo/master/"
+    }
 }
 
 dependencies {
     compile (
             [group: 'net.java.dev.jna', name: 'jna-platform', version: '4.4.0'],
-
-            /* Logging with logback + slf4 */
             [group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'],
             [group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'],
             [group: 'ch.qos.logback', name: 'logback-core', version: '1.2.3'],
+            [group: 'net.sourceforge', name: 'javaml', version: '0.1.7'],
     )
 
     testCompile(

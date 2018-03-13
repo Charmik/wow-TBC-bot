@@ -9,6 +9,7 @@ import java.util.Random;
 
 import javafx.geometry.Point3D;
 import javafx.util.Pair;
+import net.sf.javaml.core.kdtree.KDTree;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import wow.components.Navigation;
@@ -16,6 +17,7 @@ import wow.memory.objects.CreatureObject;
 import wow.memory.objects.Player;
 
 public class Graph {
+
     private static final Logger logger = LoggerFactory.getLogger(Graph.class);
     private List<Vertex> vertices = new ArrayList<>();
     private double[][] d;
@@ -47,7 +49,7 @@ public class Graph {
         Point3D unitPoint,
         List<Vertex> vertices)
     {
-        //logger.info("getNearestPointTo input=" + unitPoint);
+        logger.debug("getNearestPointTo input=" + unitPoint);
         double min = 1.7976931348623157E308D;
         Vertex returnVertex = null;
         for (Vertex v : vertices) {
@@ -66,12 +68,12 @@ public class Graph {
 
     public void buildGraph(Path path) {
         if (path.getPoints().isEmpty()) {
-            //logger.info("buildGraph: dont build because point in file=" + path.getFileName() + " is empty");
+            logger.info("buildGraph: dont build because point in file=" + path.getFileName() + " is empty");
             return;
         }
         int prevSize = vertices.size();
         vertices.add(new Vertex(path.getPoints().get(0), vertices.size(), path.getFileName()));
-        for (int i = 1; i < path.getPoints().size(); ++i) {
+        for (int i = 1; i < path.getPoints().size(); i++) {
             Vertex prevVertex = vertices.get(i - 1);
             Vertex currentVertex = new Vertex(path.getPoints().get(i), prevSize + i, path.getFileName());
             prevVertex.add(currentVertex);
@@ -89,15 +91,19 @@ public class Graph {
                 vertices.get(vertices.size() - 1),
                 vertices.subList(0, prevSize));
         }
+//        deleteDuplicateVertexes();
         deleteDuplicateVertexes();
-        //logger.info("GRAPH SIZE=" + vertices.size());
-        //logger.info("graph=" + vertices);
+        logger.debug("GRAPH SIZE=" + vertices.size());
+        logger.debug("graph=" + vertices);
+        int vIndex = -1;
         for (Vertex x : vertices) {
-            //logger.info(x.toString());
+            logger.debug(x.toString());
+            vIndex++;
             for (Vertex y : x.neighbors) {
                 if (y.index > vertices.size()) {
-                    //logger.info(String.valueOf(y.index));
-                    throw new IllegalArgumentException(y.index + " size=" + vertices.size());
+                    logger.debug(String.valueOf(y.index));
+                    throw new IllegalArgumentException("found index from = " +
+                        vIndex + " " + y.index + " vertex, but size=" + vertices.size());
                 }
             }
         }
@@ -120,80 +126,102 @@ public class Graph {
         Pair<Vertex, Double> nearestPointInGraph)
     {
         if (nearestPointInGraph.getValue() < 10000) {
-            System.out.println("merge files: newFile=" + newVertex.fileName + " oldFile=" + nearestPointInGraph.getKey().fileName);
+            logger.debug("merge files: newFile=" + newVertex.fileName + " oldFile=" + nearestPointInGraph.getKey().fileName);
             newVertex.add(nearestPointInGraph.getKey());
             nearestPointInGraph.getKey().add(newVertex);
         }
     }
 
-    private void deleteDuplicateVertexes() {
-        boolean foundDuplicate = true;
-        while (true) {
-            int indexFirst;
-            int indexSecond;
-            do {
-                if (!foundDuplicate) {
-                    for (indexFirst = 1; indexFirst < vertices.size(); ++indexFirst) {
-                        if (indexFirst - vertices.get(indexFirst - 1).index != 1) {
-                            throw new RuntimeException("indexes are not correct, maybe bug " + indexFirst);
-                        }
-                    }
-                    return;
+    void deleteDuplicateVertexes() {
+        KDTree tree = new KDTree(3);
+        for (Vertex vertex : vertices) {
+            double arr[] = new double[3];
+            arr[0] = vertex.coordinates.getX();
+            arr[1] = vertex.coordinates.getY();
+            arr[2] = vertex.coordinates.getZ();
+            tree.insert(arr, vertex);
+        }
+        int i = 0;
+        while (i < vertices.size()) {
+            Vertex vertex = vertices.get(i);
+            double arr[] = new double[3];
+            arr[0] = vertex.coordinates.getX();
+            arr[1] = vertex.coordinates.getY();
+            arr[2] = vertex.coordinates.getZ();
+            //[0] is the same vertex
+            Vertex nearest = (Vertex) (tree.nearest(arr, 2)[1]);
+            if (vertex.coordinates.distance(nearest.coordinates) < 10.0D && !vertex.equals(nearest)) {
+                int indexFirst = vertex.index;
+                int indexSecond = nearest.index;
+
+                if (indexFirst == indexSecond) {
+                    throw new IllegalStateException("indexFirst=indexSecond " + indexFirst);
                 }
-                foundDuplicate = false;
-                indexFirst = -1;
-                indexSecond = -1;
-                for (int i = 0; i < vertices.size(); ++i) {
-                    for (int j = i + 1; j < vertices.size(); ++j) {
-                        if (vertices.get(i).coordinates.distance(vertices.get(j).coordinates) < 10.0D) {
-                            foundDuplicate = true;
-                            indexFirst = i;
-                            indexSecond = j;
-                            break;
-                        }
-                    }
-                    if (foundDuplicate) {
-                        break;
-                    }
-                }
-            } while (!foundDuplicate);
-            Vertex firstVertex = vertices.get(indexFirst);
-            Vertex secondVertex = vertices.get(indexSecond);
-            secondVertex.neighbors.remove(firstVertex);
-            for (Vertex v : secondVertex.neighbors) {
-                boolean has = false;
-                for (Vertex u : firstVertex.neighbors) {
-                    if (v.index == u.index) {
-                        has = true;
-                    }
-                }
-                if (!has) {
-                    firstVertex.neighbors.add(v);
+
+                Vertex firstVertex = vertices.get(indexFirst);
+                Vertex secondVertex = vertices.get(indexSecond);
+
+                addNeighborsFromSecondToFirst(firstVertex, secondVertex);
+                addFirstVertexInsteadSecond(firstVertex, secondVertex);
+                reindexVertexes(indexSecond);
+
+                arr[0] = secondVertex.coordinates.getX();
+                arr[1] = secondVertex.coordinates.getY();
+                arr[2] = secondVertex.coordinates.getZ();
+                tree.delete(arr);
+            } else {
+                i++;
+            }
+        }
+    }
+
+    private void addFirstVertexInsteadSecond(
+        Vertex firstVertex,
+        Vertex secondVertex)
+    {
+        for (Vertex v : vertices) {
+            boolean wasRemoved = false;
+            for (Vertex neighbor : v.neighbors) {
+                if (neighbor.equals(secondVertex)) {
+                    v.neighbors.remove(neighbor);
+                    wasRemoved = true;
+                    break;
                 }
             }
-            for (Vertex v : vertices) {
-                boolean wasRemoved = false;
-                for (Vertex neighbor : v.neighbors) {
-                    if (neighbor.equals(secondVertex)) {
-                        v.neighbors.remove(neighbor);
-                        wasRemoved = true;
-                        break;
-                    }
-                }
-                if (wasRemoved && !v.equals(firstVertex)) {
-                    v.neighbors.add(firstVertex);
+            if (wasRemoved && !v.equals(firstVertex)) {
+                v.neighbors.add(firstVertex);
+            }
+        }
+    }
+
+    private void reindexVertexes(int indexSecond) {
+        if (indexSecond != vertices.size() - 1) {
+            for (int i = indexSecond; i < vertices.size() - 1; ++i) {
+                vertices.set(i, vertices.get(i + 1));
+            }
+        }
+        vertices.remove(vertices.size() - 1);
+        for (Vertex v : vertices) {
+            if (v.index > indexSecond) {
+                --v.index;
+            }
+        }
+    }
+
+    private void addNeighborsFromSecondToFirst(
+        Vertex firstVertex,
+        Vertex secondVertex)
+    {
+        secondVertex.neighbors.remove(firstVertex);
+        for (Vertex v : secondVertex.neighbors) {
+            boolean has = false;
+            for (Vertex u : firstVertex.neighbors) {
+                if (v.index == u.index) {
+                    has = true;
                 }
             }
-            if (indexSecond != vertices.size() - 1) {
-                for (int i = indexSecond; i < vertices.size() - 1; ++i) {
-                    vertices.set(i, vertices.get(i + 1));
-                }
-            }
-            vertices.remove(vertices.size() - 1);
-            for (Vertex v : vertices) {
-                if (v.index > indexSecond) {
-                    --v.index;
-                }
+            if (!has) {
+                firstVertex.neighbors.add(v);
             }
         }
     }
@@ -219,7 +247,6 @@ public class Graph {
                 dfs(neighbor);
             }
         }
-
     }
 
     public void floyd() {
@@ -268,7 +295,7 @@ public class Graph {
         if (startVertex.isPresent() && finishVertex.isPresent()) {
             return getShortestPath(startVertex.get().index, finishVertex.get().index);
         } else {
-            //logger.info("graph doesn't contain start or finish points: startVertexPresent=" + startVertex.isPresent() + ", finishVertexPresent=" + finishVertex.isPresent());
+            logger.debug("graph doesn't contain start or finish points: startVertexPresent=" + startVertex.isPresent() + ", finishVertexPresent=" + finishVertex.isPresent());
             return Collections.emptyList();
         }
     }

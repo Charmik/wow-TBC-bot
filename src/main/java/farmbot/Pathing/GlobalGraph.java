@@ -13,13 +13,14 @@ public class GlobalGraph {
         this.paths = BotPath.getAllPaths();
     }
 
-
     void buildGlobalGraph() {
         for (Path path : paths) {
             graph.buildGraph(path);
         }
-//        graph.buildGraph(paths.get(0));
+        System.out.println(graph.getVertices().size());
     }
 
-
+    public void reset() {
+        graph.clear();
+    }
 }
