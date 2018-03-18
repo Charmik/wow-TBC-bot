@@ -34,7 +34,7 @@ public class HealBot {
         healBot.run();
     }
 
-    public boolean makeOneHeal() {
+    public boolean makeOneHeal() throws InterruptedException {
         this.player.updatePlayer();
         this.objectManager.refillPlayers();
         Map<Long, PlayerObject> players = this.objectManager.getPlayers();
@@ -48,22 +48,11 @@ public class HealBot {
         }
     }
 
-    private void run() {
+    private void run() throws InterruptedException {
         int i = 0;
 
         while (true) {
-            if (i == 0 || i == 100000) {
-                this.player.updatePlayer();
-                this.objectManager.refillPlayers();
-                i = 0;
-            }
-
-            Map<Long, PlayerObject> players = this.objectManager.getPlayers();
-            PlayerObject playerWithMinimumHealth = this.getTargetForHeal(players);
-            if (playerWithMinimumHealth != null) {
-                this.makeHeal(playerWithMinimumHealth);
-                Utils.sleep(50L);
-            }
+            makeOneHeal();
             ++i;
         }
     }
@@ -98,7 +87,7 @@ public class HealBot {
         return v > 1000.0D;
     }
 
-    private void makeHeal(PlayerObject playerWithMinimumHealth) {
+    private void makeHeal(PlayerObject playerWithMinimumHealth) throws InterruptedException {
         int needHealthForFull = playerWithMinimumHealth.needHealthForFull();
         if (needHealthForFull >= 1150) {
             player.target(playerWithMinimumHealth);
@@ -111,7 +100,9 @@ public class HealBot {
 
             if (System.currentTimeMillis() - this.timestampLastHeal >= time) {
                 if (spell != Spell.NONE) {
-                    previousHeal.list.add(new Cast(spell, System.currentTimeMillis()));
+                    if (spell != Spell.SWIFTMEND) {
+                        previousHeal.list.add(new Cast(spell, System.currentTimeMillis()));
+                    }
 
                     if (spell == Spell.LIFEBLOOM) {
                         this.wowInstance.click(WinKey.D1);
@@ -119,10 +110,13 @@ public class HealBot {
                         this.wowInstance.click(WinKey.D4);
                     } else if (spell == Spell.REGROWTH) {
                         this.wowInstance.click(WinKey.D3);
+                    } else if (spell == Spell.SWIFTMEND) {
+                        this.wowInstance.click(WinKey.D2);
                     }
 
                     this.timestampLastHeal = System.currentTimeMillis();
                 }
+                //Thread.sleep(800);
             }
             while (previousHeal.list.size() > 10) {
                 previousHeal.list.removeFirst();
@@ -131,7 +125,7 @@ public class HealBot {
     }
 
     enum Spell {
-        REJUVENATION, REGROWTH, LIFEBLOOM, NONE
+        REJUVENATION, REGROWTH, LIFEBLOOM, SWIFTMEND, NONE
 
     }
 
@@ -139,11 +133,68 @@ public class HealBot {
 
         public LinkedList<Cast> list;
 
+        public PreviousHeal() {
+            this.list = new LinkedList<>();
+        }
+
         public Spell getSpell(int needHealthForFull) {
-            if (needHealthForFull < 2000) {
+            if (list.isEmpty()) {
+                if (needHealthForFull < 1500) {
+                    System.out.println("return LIFEBLOOM because list is empty for this player");
+                    return Spell.LIFEBLOOM;
+                } else if (needHealthForFull < 4000) {
+                    System.out.println("return REJUVENATION because list is empty for this player");
+                    return Spell.REJUVENATION;
+                } else {
+                    System.out.println("return REGROWTH because list is empty for this player");
+                    return Spell.REGROWTH;
+                }
+            }
+            long lastTimeLifebloom = -1;
+            long lastTimeRejuvenation = -1;
+            long lastTimeRegrowth = -1;
+            for (Cast c : list) {
+                if (c.spell == Spell.LIFEBLOOM) {
+                    lastTimeLifebloom = c.timeCast;
+                }
+                if (c.spell == Spell.REJUVENATION) {
+                    lastTimeRejuvenation = c.timeCast;
+                }
+                if (c.spell == Spell.REGROWTH) {
+                    lastTimeRegrowth = c.timeCast;
+                }
+            }
+            long now = System.currentTimeMillis();
+            long lifebloomDifference = now - lastTimeLifebloom;
+            if (lastTimeLifebloom == -1) {
+                lifebloomDifference = -1;
+            }
+            long rejuvenationDifference = now - lastTimeRejuvenation;
+            if (lastTimeRejuvenation == -1) {
+                rejuvenationDifference = -1;
+            }
+            long regrowthDifference = now - lastTimeRegrowth;
+            if (lastTimeRegrowth == -1) {
+                regrowthDifference = -1;
+            }
+
+            //didn't use lifebloom, or it will over soon, need update.
+            if (lifebloomDifference == -1 || lifebloomDifference > 4500) {
+                System.out.println("return LIFEBLOOM lifebloomDifference:" + lifebloomDifference);
                 return Spell.LIFEBLOOM;
             }
-            return null;
+            if (regrowthDifference == -1) {
+                return Spell.REGROWTH;
+            }
+            if (rejuvenationDifference == -1 || rejuvenationDifference > 12000) {
+                return Spell.REJUVENATION;
+            }
+            if (needHealthForFull > 8000 && regrowthDifference > 10000) {
+                return Spell.REGROWTH;
+            } else {
+                return Spell.SWIFTMEND;
+            }
+            //return null;
         }
     }
 
