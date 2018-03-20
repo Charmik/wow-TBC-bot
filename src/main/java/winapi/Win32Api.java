@@ -16,10 +16,10 @@ import static com.sun.jna.platform.win32.WinUser.WM_KEYUP;
 /**
  * @author Cargeh
  */
-public final class Win32Api {
+public final class Win32api {
     private static final User32Extended user32 = User32Extended.SINSTANCE;
 
-    private Win32Api() throws IllegalAccessException {
+    private Win32api() throws IllegalAccessException {
         throw new IllegalAccessException("Cannot instantiate Win32Api");
     }
 
@@ -27,7 +27,6 @@ public final class Win32Api {
         HWND hwnd = user32.FindWindow(null, windowName);
         if (hwnd == null)
             throw new RuntimeException("Cannot find window with name " + windowName);
-
         return hwnd;
     }
 

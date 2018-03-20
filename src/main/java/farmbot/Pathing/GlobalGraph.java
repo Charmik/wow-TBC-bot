@@ -13,7 +13,7 @@ public class GlobalGraph {
 
     private static final Logger logger = LoggerFactory.getLogger(GlobalGraph.class);
 
-    private Graph graph;
+    Graph graph;
     private List<Path> paths;
 
     public GlobalGraph() {
@@ -22,22 +22,36 @@ public class GlobalGraph {
     }
 
     public void buildGlobalGraph() {
+        logger.info("start build globalGraph");
         for (Path path : paths) {
             graph.buildGraph(path);
         }
-        graph.floyd();
+        graph.dijkstra();
         logger.info("globalGraph size=" + graph.getVertices().size());
     }
 
+    private void substractPoint(Path path) {
+        for (int i = 0; i < path.getPoints().size(); i++) {
+            Point3D point3D = path.getPoints().get(i);
+            Point3D subtract = point3D.subtract(-5538.576, -3498.06, -51.020306);
+            path.getPoints().set(i, subtract);
+        }
+    }
+
+    //! CALL ONLY FROM TESTS
     public void floyd() {
         graph.floyd();
+    }
+
+    public void dijkstra() {
+        graph.dijkstra();
     }
 
     public Pair<Point3D, Double> getNearestPointTo(Point3D point) {
         return graph.getNearestPointTo(point);
     }
 
-    public List<Graph.Vertex> XXXTest(
+    public List<Graph.Vertex> getShortestPath(
         Point3D start,
         Point3D finish)
     {

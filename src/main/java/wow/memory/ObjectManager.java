@@ -61,14 +61,14 @@ public final class ObjectManager extends MemoryAware {
     }
 
     public void refillPlayers() {
-        log.info("refillPlayers");
+        //log.info("refillPlayers");
         if (!players.isEmpty())
             players.clear();
         scanForNewPlayers();
     }
 
     public void refillUnits() {
-        log.info("refillUnits in the memory, EXPENSIVE OPERATION!!!!");
+        //log.info("refillUnits in the memory, EXPENSIVE OPERATION!!!!");
         if (!units.isEmpty())
             units.clear();
         scanForNewUnits();

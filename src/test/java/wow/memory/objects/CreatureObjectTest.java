@@ -86,4 +86,19 @@ public class CreatureObjectTest extends BaseTest {
         }
 
     }
+
+    @Ignore
+    @Test
+    public void readBlockFromUnit() throws InterruptedException {
+        for (; ; ) {
+            Optional<CreatureObject> object = player.getTarget();
+            if (object.isPresent()) {
+                if (object.get() instanceof UnitObject) {
+                    UnitObject unit = (UnitObject) object.get();
+                    System.out.println(Arrays.toString(unit.readBlock()));
+                }
+            }
+            Thread.sleep(2000);
+        }
+    }
 }

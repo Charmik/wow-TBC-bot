@@ -27,17 +27,19 @@ public enum FarmList {
     TOSHLEY_STATOPN(64, 70, "toshley_station", null, "repair_toshley_station"),
     */
     //HORDE
-    START_TAURENS(1, 7, "1-8_mulgore_start", "BV8-14", null, true),
-    BLOODHOOF_VILLAGE(8, 13, "BV8-14", null, null, true),
+    START_TAURENS(1, 7, "1-8_mulgore_start", "8-14BV", null, true),
+    BLOODHOOF_VILLAGE(8, 13, "8-14BV", null, null, true),
     CROSSROAD_ZHEVRAS(14, 19, "14-20_barrens", null, null, true),
-    //    MULGORE_KODO(14, 19, "10-18_mulgore", null, null, true),
     CAMP_TOURAJO(20, 23, "20-23_camp", "23_end_barrens", null, true),
-    END_BARRENS(24, 27, "20-23_end_barrens", null, null, true),
-    NEEDLES_BOTTON_SPIRIT(28, 35, "30-32_needles", "34-35_needles", null, true),
-    NEEDLES_BOTTOM(36, 40, "34-35_needles", null, null, false),
+    END_BARRENS(24, 27, "20-23_end_barrens", "27-28_needles", null, true),
+    NEEDLES_BOTTON(28, 31, "27-28_needles", "30-32_needles", null, true),
+    NEEDLES_BOTTON_SPIRIT(32, 35, "30-32_needles", "34-35_needles", null, true),
+    NEEDLES_BOTTOM(36, 40, "34-35_needles", "41_gadgetzan", null, true), //edit it a little, stuck sometimes in water
     GADGEDZAN(41, 44, "41_gadgetzan", "45-47_tanaris", null, true),
     TANARIS_SECOND_SPIRIT(45, 49, "45-47_tanaris", "48-50_ungoro", null, true),
-    UNGORO(50, 55, "48-50_ungoro", null, null, true),
+    UNGORO(50, 59, "48-50_ungoro", null, null, true),
+    SILITIUS(60, 61, "57-58_silit", null, null, true),
+    HELLFIRE_IMPS(60, 65, "hellfire_58", null, null, true),
     SALVANAR(64, 70, "sylvanar_farm", null, "salvanar_repair", false),
     ANY(1, 70, "", null, null, false);
 

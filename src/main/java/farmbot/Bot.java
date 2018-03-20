@@ -11,6 +11,8 @@ import farmbot.Pathing.GlobalGraph;
 import farmbot.Pathing.Graph;
 import farmbot.Pathing.Graph.Vertex;
 import farmbot.Pathing.Path;
+import farmbot.launch.CloseHandler;
+import farmbot.launch.Stopper;
 import javafx.geometry.Point3D;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +25,7 @@ import wow.memory.ObjectManager;
 import wow.memory.objects.Player;
 import wow.memory.objects.UnitObject;
 
-class Bot {
+public class Bot {
 
     private static final Logger logger = LoggerFactory.getLogger(Bot.class);
     private static boolean killGrayMobs;
@@ -39,9 +41,10 @@ class Bot {
     private final Fighter fighter;
     private final TargetManager targetManager;
     private final GlobalGraph globalGraph;
+    private Stopper stopperBot;
     private FarmList farmList;
 
-    Bot(String[] args) {
+    public Bot(String[] args) {
         this.ctmManager = wowInstance.getCtmManager();
         this.player = wowInstance.getPlayer();
         this.objectManager = wowInstance.getObjectManager();
@@ -49,16 +52,17 @@ class Bot {
         this.args = args;
         this.healer = new Healer(player, wowInstance);
         this.graph = new Graph();
-        this.targetManager = new TargetManager(graph, player, objectManager);
-        this.fighter = new Fighter(player, ctmManager, wowInstance, healer, graph, targetManager);
+        globalGraph = new GlobalGraph();
+        globalGraph.buildGlobalGraph();
+        this.targetManager = new TargetManager(graph, player, objectManager, globalGraph);
+        this.fighter = new Fighter(player, ctmManager, wowInstance, healer, graph, targetManager, objectManager);
         this.movement = new Movement(player, healer, ctmManager, wowInstance, fighter, targetManager);
         Looter.configure(player, ctmManager, wowInstance);
         this.random = new Random();
         killGrayMobs = BotPath.killGrayMobs(args);
         farmList = configureFarmList();
-        globalGraph = new GlobalGraph();
-        globalGraph.buildGlobalGraph();
-        new Thread(new CloseHandler()).start();
+
+        this.stopperBot = new Stopper();
     }
 
     public static boolean isKillGrayMobs() {
@@ -66,11 +70,17 @@ class Bot {
     }
 
     public void run() throws IOException {
+
+        new Thread(new CloseHandler(stopperBot)).start();
+
         long prevBuff = System.currentTimeMillis();
         // make 0 if you want go to sell items at start
         long lastTimeSell = System.currentTimeMillis();
         int countDidntFindMob = 0;
         while (true) {
+            if (stopperBot.isStop()) {
+                break;
+            }
             healer.heal(null);
             lastTimeSell = repairAndSellItems(lastTimeSell);
             prevBuff = makeBuffs(prevBuff);
@@ -86,6 +96,7 @@ class Bot {
                 goToRandomPoint();
             }
             if (player.isInCombat()) {
+                logger.info("we are in combat, let's go kill who attacks us");
                 List<UnitObject> enemies = targetManager.getMobsForAttack();
                 fighter.killListOfMobs(enemies);
             }
@@ -107,27 +118,12 @@ class Bot {
         healer.regenMana();
         if (nearestMobForAttack != null) {
             Point3D nearestPointToMob = globalGraph.getNearestPointTo(nearestMobForAttack).getKey();
-            double distance = nearestPointToMob.distance(nearestMobForAttack.getCoordinates());
-            logger.info("distance from nearestPointInGraph to mob is {}", distance);
-            if (distance < 10) {
-                makeRoute(nearestMobForAttack, nearestPointToMob, null);
-                if (nearestMobForAttack.getHealth() == 100) {
-                    player.target(nearestMobForAttack);
-                    fighter.kill(nearestPointToMob, nearestMobForAttack);
-                } else {
-                    logger.info("mob health is not 100%, so skip it");
-                }
-                objectManager.refillUnits();
-                return true;
-            } else {
-                objectManager.removeUnit(nearestMobForAttack.getGuid());
-                return false;
-            }
+            makeRoute(nearestMobForAttack, nearestPointToMob, null);
+            player.target(nearestMobForAttack);
+            fighter.kill(nearestPointToMob, nearestMobForAttack);
+            objectManager.refillUnits();
+            return true;
         } else {
-//            Utils.sleeping(player, 10000);
-//            goToRandomPoint(nearestPointToPlayer);
-            logger.info("didnt find any mob");
-            //objectManager.refillUnits();
             return false;
         }
     }
@@ -219,9 +215,11 @@ class Bot {
 
     //TODO: move somewhere
     private void updateGraph(FarmList farmList) {
+        logger.info("start update Graph");
         graph.clear();
         graph.buildGraph(BotPath.getPathFromFile(farmList.getCurrentFileName()));
         graph.floyd();
+        logger.info("finished update Graph");
     }
 
     //TODO: move to Movemenet
@@ -238,6 +236,9 @@ class Bot {
             }
             logger.info("shortestPath.size()=" + shortestPath.size());
             for (Vertex v : shortestPath) {
+                if (!player.isDead() && tryFindNearestMobToKill()) {
+                    break;
+                }
                 boolean wasReleased = movement.goToNextPoint(v.getCoordinates());
                 if (wasReleased) {
                     break;

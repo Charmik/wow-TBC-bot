@@ -33,6 +33,9 @@ import static wow.memory.CtmManager.CtmAction.WALK;
  * @author Cargeh
  */
 public final class CtmManager extends MemoryAware {
+
+    private static final Logger logger = LoggerFactory.getLogger(CtmManager.class);
+
     private static final Address ctmX = Address.STATIC.CTM_X;
     private static final Address ctmY = Address.STATIC.CTM_Y;
     private static final Address ctmZ = Address.STATIC.CTM_Z;
@@ -74,11 +77,12 @@ public final class CtmManager extends MemoryAware {
         WowObject object,
         WowInstance wowInstance,
         Point3D nextPoint,
-        int level)
+        int level,
+        boolean goToAsMelee)
     {
         int stuckCounter = 0;
         Coordinates2D initialPosition = Navigation.get2DCoordsFor(this.player);
-        while (!Navigation.areNear(initialPosition, object, level)) {
+        while (!Navigation.areNear(initialPosition, object, level, goToAsMelee)) {
             moveTo(object);
             if (nextPoint != null) {
                 double distanceToObject = Navigation.evaluateDistanceFromTo(this.player.getCoordinates(), nextPoint);
@@ -144,10 +148,12 @@ public final class CtmManager extends MemoryAware {
         while (!isNear(initialPosition3D, point)) { // check every second
             if (player.isInCombat()) {
                 // true, because we dont need do unstuck if we met red-mob
+                logger.info("exit from goTo because player.isInCombat()");
                 return true;
             }
             if (player.isDeadLyingDown()) {
-                return true;
+                logger.info("exit from goTo because player.isDeadLyingDown()");
+                return false;
             }
             moveTo(point);
             Utils.sleep(goToIterationCheck);

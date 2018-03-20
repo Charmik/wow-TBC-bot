@@ -145,7 +145,7 @@ public abstract class MemoryAware {
         Address address,
         long addr)
     {
-        Memory memory = readMemory(addr, address);
+        Memory memory = readMemory(descriptorAddress, address);
         int[] arr = new int[address.getBytes() / 4];
         memory.read(0, arr, 0, address.getBytes() / 4);
         memory.clear();

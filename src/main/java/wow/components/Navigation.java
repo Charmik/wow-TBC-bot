@@ -19,7 +19,7 @@ public class Navigation {
 
     private static float NEAR_COORDS_DIFFERENCE = 2.0f;
     private static float NEAR_COORDS_DIFFERENCE_MOB = 4.0f;
-    private static float NEAR_COORDS_DIFFERENCE_MOB_WITF_FF = 10.0f;
+    private static float NEAR_COORDS_DIFFERENCE_MOB_WITF_FF = 16.0f;
     private static float NEAR_COORDS_DIFFERENCE_AS_CASTER = 900;
     private static float IS_MOB_NEAR = 40.0f;
     private static float IS_NEAR_TO_POINT = 2.0f;
@@ -101,11 +101,12 @@ public class Navigation {
     public static boolean areNear(
         Coordinates2D playerCoords,
         WowObject object,
-        int level)
+        int level,
+        boolean goToAsMelee)
     {
         Coordinates2D objectCoords = get2DCoordsFor(object);
         float f = NEAR_COORDS_DIFFERENCE_MOB;
-        if (level >= 30) {
+        if (level >= 30 && !goToAsMelee) {
             f = NEAR_COORDS_DIFFERENCE_MOB_WITF_FF;
         }
         return getCoordsXDifference(playerCoords, objectCoords) <= f
@@ -116,7 +117,7 @@ public class Navigation {
         Coordinates2D playerCoords,
         WowObject object)
     {
-        return areNear(playerCoords, object, -1);
+        return areNear(playerCoords, object, -1, false);
     }
 
     public static boolean areNearAsCaster(

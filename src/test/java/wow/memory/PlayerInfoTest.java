@@ -1,8 +1,5 @@
 package wow.memory;
 
-import java.awt.geom.Point2D;
-
-import org.junit.Test;
 import wow.BaseTest;
 
 
@@ -10,6 +7,7 @@ import wow.BaseTest;
  * @author Cargeh
  */
 public class PlayerInfoTest extends BaseTest {
+
 
     private static void printf(
         String format,
@@ -23,6 +21,7 @@ public class PlayerInfoTest extends BaseTest {
      * - 29: hovering over hostile mob, out of range
      * - 4: hovering over hostile mob, in range
      */
+    /*
     @Test
     public void testStaticValues() {
         printf("-------- STATIC VALUES ---------");
@@ -36,12 +35,14 @@ public class PlayerInfoTest extends BaseTest {
         player.getTarget().ifPresent(wowObject -> printf("Target GUID: %d", wowObject.getGuid()));
         printf("Vendor opened window ID: %d", player.getVendorWindowId());
     }
+    */
 
     /**
      * Movement states:
      * - 1: running forward
      * - 2: running backwards
      */
+    /*
     @Test
     public void testDymanic() {
         printf("-------- DYNAMIC VALUES ---------");
@@ -68,4 +69,5 @@ public class PlayerInfoTest extends BaseTest {
         printf("Player WORLD Y position: %f", player.getY());
         printf("Player WORLD Z position: %f", player.getZ());
     }
+    */
 }

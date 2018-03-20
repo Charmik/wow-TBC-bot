@@ -1,6 +1,7 @@
 package farmbot;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +18,7 @@ public class Healer {
     private final WowInstance wowInstance;
     private long timeLastHeal = 0L;
 
-    Healer(
+    public Healer(
         Player player,
         WowInstance wowInstance)
     {
@@ -32,18 +33,29 @@ public class Healer {
                 int healthPercent = player.getHealthPercent();
                 int manaPercent = player.getManaPercent();
                 boolean inCombat = player.isInCombat();
-                if ((inCombat && healthPercent <= 51 || !inCombat && healthPercent < 65) && manaPercent > 35 && healthPercent > 5) {
-                    List<UnitObject> mobsTargetingMe = wowInstance.getObjectManager().getMobsTargetingMe(true);
+                List<UnitObject> mobsTargetingMe = wowInstance.getObjectManager().getMobsTargetingMe(true);
+                int WHEN_HEAL_IN_FIGHT = 50;
+                if (player.getLevel() < 65 && mobsTargetingMe.size() == 1) {
+                    WHEN_HEAL_IN_FIGHT = 40;
+                }
+                if ((inCombat && healthPercent <= WHEN_HEAL_IN_FIGHT || !inCombat && healthPercent < 65) && manaPercent > 35 && healthPercent > 5) {
                     logger.info(mobsTargetingMe.size() + " targeting me");
-                    int i;
+                    int targetHealth;
                     if (mobsTargetingMe.size() == 1) {
-                        i = (mobsTargetingMe.get(0)).getHealth();
-                        logger.info("this mob have " + i + "% health, and mine is " + healthPercent);
-                        if (i < healthPercent) {
+                        targetHealth = (mobsTargetingMe.get(0)).getHealth();
+                        logger.info("this mob have " + targetHealth + "% health, and mine is " + healthPercent);
+                        if (targetHealth < healthPercent) {
                             logger.info("don't heal because we have only 1 enemy and his health is less then mine");
                             return;
                         }
+                    } else {
+                        Optional<Integer> min = mobsTargetingMe.stream().map(UnitObject::getHealth).min(Integer::compare);
+                        if (min.isPresent() && min.get() < 5 && healthPercent > 25) {
+                            logger.info("exit from heal, because 1 mob has less than 5% hp, kill it and then heal");
+                            return;
+                        }
                     }
+
 
                     if (target != null && target.getComboPoints() == 5) {
                         //in player-farm you have 100 energy
@@ -61,19 +73,25 @@ public class Healer {
                     logger.info("healing at " + healthPercent + " % health");
                     //when you got stun and your hp didn't change - try again
                     castRegrowth();
-                    Utils.sleep(50);
-                    if (player.isInCombat() && player.getHealthPercent() < healthPercent) {
+                    Utils.sleep(2000);
+                    int EPSILON_HEALTH = 50;
+                    logger.info("player.getHealthPercent()={} , healthPercent={}", player.getHealthPercent(), healthPercent);
+                    if (player.isInCombat() && player.getHealthPercent() + EPSILON_HEALTH < healthPercent) {
                         logger.info("##################### INSIDE COMBAT + player.getHealthPercent() < healthPercent");
                         Utils.sleep(4000);
-                        if (player.getHealthPercent() < healthPercent) {
+                        if (player.getHealthPercent() + EPSILON_HEALTH < healthPercent) {
                             castRegrowth();
                         }
                     }
 
                     logger.info("casted D4");
-                    if (inCombat && manaPercent > 40) {
+                    int MANA_WHEN_CAST_REJUVENATION = 40;
+                    if (player.getLevel() > 50) {
+                        MANA_WHEN_CAST_REJUVENATION = 30;
+                    }
+                    if (inCombat && manaPercent > MANA_WHEN_CAST_REJUVENATION) {
                         logger.info("in combat and mana > 40, cast another heal D2");
-                        for (i = 0; i < 5; ++i) {
+                        for (targetHealth = 0; targetHealth < 5; ++targetHealth) {
                             Utils.sleep(100L);
                             wowInstance.click(WinKey.D2);
                         }
@@ -83,14 +101,14 @@ public class Healer {
                     if (manaPercent < 80) {
                         logger.info("try cast innervate, may be on cd");
 
-                        for (i = 0; i < 10; ++i) {
+                        for (targetHealth = 0; targetHealth < 10; ++targetHealth) {
                             Utils.sleep(100L);
                             wowInstance.click(WinKey.D5);
                             wowInstance.click(WinKey.D3);
                         }
                     }
 
-                    for (i = 0; i < 20; ++i) {
+                    for (targetHealth = 0; targetHealth < 20; ++targetHealth) {
                         Utils.sleep(100L);
                         wowInstance.click(WinKey.D3);
                     }
@@ -100,20 +118,24 @@ public class Healer {
     }
 
     private void castRegrowth() {
+        long startCast = System.currentTimeMillis();
         for (int j = 0; j < 10; j++) {
-            Utils.sleep(100L);
+            Utils.sleep(30L);
             wowInstance.click(WinKey.D4);
-            Utils.sleep(50);
+            Utils.sleep(30);
         }
         while (player.isCasting()) {
             Utils.sleep(100L);
         }
+        logger.info("castRegrowth, time passed:" + (System.currentTimeMillis() - startCast));
     }
 
     public void makeBuffs() {
         logger.info("makeBuffs");
+        //mark
         wowInstance.click(WinKey.MINUS);
         Utils.sleep(2500L);
+        //omen
         wowInstance.click(WinKey.PLUS);
         Utils.sleep(2500L);
         wowInstance.click(WinKey.D3);
@@ -140,7 +162,9 @@ public class Healer {
                 if (inCombat || isDead || mana > needMana) {
                     break;
                 }
+                wowInstance.click(WinKey.D5);
             }
+            heal(null);
             wowInstance.click(WinKey.D3);
         }
     }

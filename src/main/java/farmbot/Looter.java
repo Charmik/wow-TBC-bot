@@ -40,7 +40,7 @@ public class Looter {
         logger.info("units for loot:  " + unitsForLoot);
         ArrayList<UnitObject> list = new ArrayList<>(unitsForLoot);
         Collections.reverse(list);
-        System.out.println("SIZE=" + list.size());
+        logger.info("looting mobs, count=" + list.size());
         for (UnitObject unit : list) {
             getLoot(unit);
         }
@@ -48,8 +48,7 @@ public class Looter {
 
     private static void getLoot(UnitObject unit) {
         logger.info("getLoot");
-        goTo(unit, null);
-        player.target(unit);
+        goTo(unit, null, false);
         ctmManager.loot(unit);
         Utils.sleep(500L);
         wowInstance.click(WinKey.D6);
@@ -71,12 +70,13 @@ public class Looter {
     //TODO: move to Movement
     public static boolean goTo(
         UnitObject unitObject,
-        Point3D nextPoint)
+        Point3D nextPoint,
+        boolean goToAsMelee)
     {
         if (player.getLevel() < 20) {
             return ctmManager.goToAsCaster(unitObject);
         } else {
-            return ctmManager.goTo(unitObject, wowInstance, nextPoint, player.getLevel());
+            return ctmManager.goTo(unitObject, wowInstance, nextPoint, player.getLevel(), goToAsMelee);
         }
     }
 }

@@ -47,12 +47,8 @@ class Movement {
 
     boolean goToNextPoint(Point3D nextPoint) {
         int count = 0;
-        int tryUnstuckCounter = 0;
         while (!Navigation.isNear(new Coordinates3D(player.getX(), player.getY(), player.getZ()), nextPoint)) {
             ++count;
-            if (count == 5) {
-                logger.info("goToNextPoint, count=" + count);
-            }
             if (System.currentTimeMillis() - healer.getTimeLastHeal() >= 6000L) {
                 healer.regenMana();
             }
@@ -61,18 +57,18 @@ class Movement {
                 if (player.isInCombat()) {
                     List<UnitObject> enemies = targetManager.getMobsForAttack();
                     fighter.killListOfMobs(enemies);
+                    break;
                 }
             } else if (ress()) {
                 logger.info("break from loop in movement, because we released a spirit");
                 return true;
             }
             boolean success = ctmManager.goTo(nextPoint);
-            if (!success && count > 1) {
+            if (!success && count % 2 == 0) {
                 logger.error("can't reach next point=" + nextPoint);
                 tryUnstuck();
-                ++tryUnstuckCounter;
             }
-            if (tryUnstuckCounter == 3) {
+            if (count % 4 == 0) {
                 return false;
             }
         }
@@ -86,6 +82,9 @@ class Movement {
         for (int i = 0; i < iterations; ++i) {
             wowInstance.click(WinKey.SPACEBAR);
             Utils.sleep(500L);
+            if (player.isInCombat()) {
+                break;
+            }
         }
         wowInstance.keyUp(WinKey.W);
         long timeToRun = random.nextInt(5000);
@@ -118,16 +117,18 @@ class Movement {
     }
 
     boolean ress() {
-        logger.info("try ress character");
+        //logger.info("try ress()");
         if (player.isDeadLyingDown()) {
+            logger.info("player isDeadLyingDown");
             corpseCoordinate = player.getCoordinates();
             Utils.sleep(100L);
             wowInstance.click(WinKey.D9, 0L);
             Utils.sleep(500L);
-            logger.info("corpseCoordinate=" + corpseCoordinate);
+            logger.error("corpseCoordinate=" + corpseCoordinate);
             return true;
         } else {
             if (player.isSpirit()) {
+                //logger.info("player is spirit");
                 wowInstance.click(WinKey.D0, 0L);
             }
             return false;

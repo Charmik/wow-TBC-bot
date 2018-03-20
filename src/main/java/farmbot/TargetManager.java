@@ -4,7 +4,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import farmbot.Pathing.GlobalGraph;
 import farmbot.Pathing.Graph;
+import javafx.geometry.Point3D;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import wow.components.Navigation;
@@ -19,19 +21,23 @@ import wow.memory.objects.UnitObject;
 public class TargetManager {
 
     private final static Logger logger = LoggerFactory.getLogger(TargetManager.class);
+    private static final int DISTANCE_FROM_MOB_TO_NEAREST_POINT_IN_GRAPH = 30;
 
     private final Graph graph;
     private final Player player;
     private final ObjectManager objectManager;
+    private GlobalGraph globalGraph;
 
     public TargetManager(
         Graph graph,
         Player player,
-        ObjectManager objectManager)
+        ObjectManager objectManager,
+        GlobalGraph globalGraph)
     {
         this.graph = graph;
         this.player = player;
         this.objectManager = objectManager;
+        this.globalGraph = globalGraph;
     }
 
     UnitObject getNearestMobForAttack() {
@@ -63,16 +69,22 @@ public class TargetManager {
                 }
             }
         }
-        //TODO: return some mob for attacking
         for (UnitObject unit : mobs) {
-            return unit;
+            Point3D nearestPointToMob = globalGraph.getNearestPointTo(unit).getKey();
+            double distance = nearestPointToMob.distance(unit.getCoordinates());
+            if (distance < DISTANCE_FROM_MOB_TO_NEAREST_POINT_IN_GRAPH) {
+                logger.info("distance from nearestPointInGraph to mob is {}, attack", distance);
+                return unit;
+            } else {
+                objectManager.removeUnit(unit.getGuid());
+            }
         }
+        logger.info("didn't find any mobs for attacking around me");
         return null;
     }
 
     public List<UnitObject> getMobsForAttack()
     {
-        logger.info("getMobsForAttack somebody attacks us!");
         return objectManager.getMobsTargetingMe(true);
     }
 

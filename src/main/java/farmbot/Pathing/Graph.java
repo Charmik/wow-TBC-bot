@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.PriorityQueue;
 import java.util.Random;
 
 import javafx.geometry.Point3D;
@@ -20,8 +21,8 @@ public class Graph {
 
     private static final Logger logger = LoggerFactory.getLogger(Graph.class);
     private List<Vertex> vertices = new ArrayList<>();
-    private double[][] d;
-    private int[][] p;
+    double[][] d;
+    int[][] p;
     private Random random = new Random();
 
     public Graph() {
@@ -50,7 +51,7 @@ public class Graph {
         List<Vertex> vertices)
     {
         logger.debug("getNearestPointTo input=" + unitPoint);
-        double min = 1.7976931348623157E308D;
+        double min = Double.MAX_VALUE;
         Vertex returnVertex = null;
         for (Vertex v : vertices) {
             double distance = Navigation.evaluateDistanceFromTo(v.getCoordinates(), unitPoint);
@@ -90,8 +91,9 @@ public class Graph {
                 vertices.get(prevSize),
                 vertices.get(vertices.size() - 1),
                 vertices.subList(0, prevSize));
+
+            //mergeDifferentGraphs2(prevSize);
         }
-//        deleteDuplicateVertexes();
         deleteDuplicateVertexes();
         logger.debug("GRAPH SIZE=" + vertices.size());
         logger.debug("graph=" + vertices);
@@ -105,6 +107,17 @@ public class Graph {
                     throw new IllegalArgumentException("found index from = " +
                         vIndex + " " + y.index + " vertex, but size=" + vertices.size());
                 }
+            }
+        }
+    }
+
+    //merge not only 1st and last point to the previous graph, but all points fom new
+    private void mergeDifferentGraphs2(int prevSize) {
+        for (int i = prevSize; i < vertices.size(); i++) {
+            for (int j = 0; j < prevSize; j++) {
+                Vertex newVertex = vertices.get(i);
+                Vertex oldVertex = vertices.get(j);
+
             }
         }
     }
@@ -124,8 +137,9 @@ public class Graph {
         Vertex newVertex,
         Pair<Vertex, Double> nearestPointInGraph)
     {
-        if (nearestPointInGraph.getValue() < 110) {
-            logger.info("merge: newFile=" + newVertex.fileName + " oldFile=" + nearestPointInGraph.getKey().fileName);
+        if (nearestPointInGraph.getValue() < 600) {
+            String f = String.format("%-58s", "merge: newFile=" + newVertex.fileName);
+            logger.info(f + nearestPointInGraph.getKey().fileName);
             newVertex.add(nearestPointInGraph.getKey());
             nearestPointInGraph.getKey().add(newVertex);
         }
@@ -187,7 +201,7 @@ public class Graph {
                     break;
                 }
             }
-            if (wasRemoved && !v.equals(firstVertex)) {
+            if (wasRemoved && !v.equals(firstVertex) && v.index != firstVertex.index) {
                 v.neighbors.add(firstVertex);
             }
         }
@@ -219,7 +233,7 @@ public class Graph {
                     has = true;
                 }
             }
-            if (!has) {
+            if (!has && firstVertex.index != v.index) {
                 firstVertex.neighbors.add(v);
             }
         }
@@ -248,21 +262,62 @@ public class Graph {
         }
     }
 
-    public void floyd() {
-        initFloyd();
-        initDistanceInMatrix();
-        processingFloyd();
+    public void dijkstra() {
+        logger.info("verticlesSize={}", vertices.size());
+        initArrays();
+        for (int from = 0; from < vertices.size(); from++) {
+            dijkstra(from);
+        }
     }
 
-    private void initFloyd() {
+    private void dijkstra(int startVertex) {
+        PriorityQueue<QItem> queue = new PriorityQueue<>(vertices.size());
+        queue.add(new QItem(startVertex, 0));
+        while (!queue.isEmpty()) {
+            QItem q = queue.poll();
+            Vertex v = vertices.get(q.vertexId);
+            for (Vertex u : v.neighbors) {
+                double newCost = d[startVertex][v.index] + v.coordinates.distance(u.coordinates);
+                if (newCost < d[startVertex][u.index]) {
+                    d[startVertex][u.index] = newCost;
+                    p[startVertex][u.index] = v.index;
+                    queue.add(new QItem(u.index, newCost));
+                }
+            }
+        }
+    }
+
+    public void floyd() {
+        logger.info("started init floyd");
+        initArrays();
+        logger.info("started initDistanceInMatrix in floyd");
+        initDistanceInMatrix();
+        logger.info("started floyd-processing");
+        processingFloyd();
+        logger.info("finished floyd");
+    }
+
+    private void initArrays() {
         int size = vertices.size();
         d = new double[size][size];
         p = new int[size][size];
-
         for (int k = 0; k < size; ++k) {
-            Arrays.fill(d[k], 1.7976931348623157E308D);
+            Arrays.fill(d[k], Double.MAX_VALUE);
             Arrays.fill(p[k], -1);
             d[k][k] = 0.0D;
+        }
+    }
+
+    private void processingFloyd() {
+        for (int k = 0; k < vertices.size(); ++k) {
+            for (int i = 0; i < vertices.size(); ++i) {
+                for (int j = 0; j < vertices.size(); ++j) {
+                    if (d[i][k] < Double.MAX_VALUE && d[k][j] < Double.MAX_VALUE && d[i][k] + d[k][j] < d[i][j]) {
+                        d[i][j] = d[i][k] + d[k][j];
+                        p[i][j] = p[k][j];
+                    }
+                }
+            }
         }
     }
 
@@ -283,23 +338,20 @@ public class Graph {
         }
     }
 
-    private void processingFloyd() {
-        for (int k = 0; k < vertices.size(); ++k) {
-            for (int i = 0; i < vertices.size(); ++i) {
-                updateDistances(k, i);
-            }
-        }
-    }
-
-    private void updateDistances(
-        int k,
-        int i)
+    public List<Vertex> getShortestPath(
+        Point3D start,
+        Point3D finish)
     {
-        for (int j = 0; j < vertices.size(); ++j) {
-            if (d[i][k] < 1.7976931348623157E308D && d[k][j] < 1.7976931348623157E308D && d[i][k] + d[k][j] < d[i][j]) {
-                d[i][j] = d[i][k] + d[k][j];
-                p[i][j] = p[k][j];
-            }
+        Point3D startInGraph = getNearestPointTo(start).getKey();
+        Point3D finishInGraph = getNearestPointTo(finish).getKey();
+        Optional<Vertex> startVertex = vertices.stream().filter((v) -> v.coordinates.equals(startInGraph)).findAny();
+        Optional<Vertex> finishVertex = vertices.stream().filter((v) -> v.coordinates.equals(finishInGraph)).findAny();
+        logger.info(" start {}, finish{}", start, finish);
+        if (startVertex.isPresent() && finishVertex.isPresent()) {
+            return getShortestPath(startVertex.get().index, finishVertex.get().index);
+        } else {
+            logger.debug("graph doesn't contain start or finish points: startVertexPresent=" + startVertex.isPresent() + ", finishVertexPresent=" + finishVertex.isPresent());
+            return Collections.emptyList();
         }
     }
 
@@ -309,54 +361,6 @@ public class Graph {
     {
         logger.info("player.getCoordinates()=" + player.getCoordinates());
         return getShortestPath(getNearestPointTo(player).getKey(), finish);
-    }
-
-    public List<Vertex> getShortestPath(
-        Point3D start,
-        Point3D finish)
-    {
-        Point3D startInGraph = getNearestPointTo(start).getKey();
-        Point3D finishInGraph = getNearestPointTo(finish).getKey();
-        Optional<Vertex> startVertex = vertices.stream().filter((v) -> v.coordinates.equals(startInGraph)).findAny();
-        Optional<Vertex> finishVertex = vertices.stream().filter((v) -> v.coordinates.equals(finishInGraph)).findAny();
-        if (startVertex.isPresent() && finishVertex.isPresent()) {
-            return getShortestPath(startVertex.get().index, finishVertex.get().index);
-        } else {
-            logger.debug("graph doesn't contain start or finish points: startVertexPresent=" + startVertex.isPresent() + ", finishVertexPresent=" + finishVertex.isPresent());
-            return Collections.emptyList();
-        }
-    }
-
-    public List<Vertex> getShortestPath(
-        int i,
-        int j)
-    {
-        return getShortestPath(vertices.get(i), vertices.get(j));
-    }
-
-    private List<Vertex> getShortestPath(
-        Vertex v,
-        Vertex u)
-    {
-        List<Vertex> list = new ArrayList<>();
-        list.add(u);
-        for (int prev = p[v.index][u.index]; prev != v.index && prev != -1; prev = p[v.index][prev]) {
-            list.add(vertices.get(prev));
-        }
-        if (!v.equals(u)) {
-            list.add(v);
-        }
-        Collections.reverse(list);
-        return list;
-    }
-
-    public Point3D getRandomCoordinates() {
-        int index = Math.abs(random.nextInt(vertices.size()));
-        return vertices.get(index).coordinates;
-    }
-
-    public List<Vertex> getVertices() {
-        return vertices;
     }
 
     public static class Vertex {
@@ -400,6 +404,71 @@ public class Graph {
                 ", visit=" + visit +
                 ", fileName=" + fileName +
                 '}';
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Vertex vertex = (Vertex) o;
+
+            return index == vertex.index;
+        }
+
+        @Override
+        public int hashCode() {
+            return index;
+        }
+    }
+
+    public List<Vertex> getShortestPath(
+        int i,
+        int j)
+    {
+        return getShortestPath(vertices.get(i), vertices.get(j));
+    }
+
+    private List<Vertex> getShortestPath(
+        Vertex v,
+        Vertex u)
+    {
+        List<Vertex> list = new ArrayList<>();
+        list.add(u);
+        for (int prev = p[v.index][u.index]; prev != v.index && prev != -1; prev = p[v.index][prev]) {
+            list.add(vertices.get(prev));
+        }
+        if (!v.equals(u)) {
+            list.add(v);
+        }
+        Collections.reverse(list);
+        return list;
+    }
+
+    public Point3D getRandomCoordinates() {
+        int index = Math.abs(random.nextInt(vertices.size()));
+        return vertices.get(index).coordinates;
+    }
+
+    public List<Vertex> getVertices() {
+        return vertices;
+    }
+
+    private class QItem implements Comparable<QItem> {
+        int vertexId;
+        double distance;
+
+        QItem(
+            int vertexId,
+            double distance)
+        {
+            this.vertexId = vertexId;
+            this.distance = distance;
+        }
+
+        @Override
+        public int compareTo(QItem o) {
+            return Double.compare(this.distance, distance);
         }
     }
 }

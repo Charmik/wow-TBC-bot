@@ -2,7 +2,7 @@ package wow;
 
 import com.sun.jna.platform.win32.WinDef.HWND;
 import util.Utils;
-import winapi.Win32Api;
+import winapi.Win32api;
 import winapi.components.WinKey;
 import wow.memory.CtmManager;
 import wow.memory.ObjectManager;
@@ -17,8 +17,8 @@ public final class WowInstance {
     private final WowMemory wowMemory;
 
     public WowInstance(String windowName) {
-        hwnd = Win32Api.getProcessHwnd(windowName);
-        int processId = Win32Api.getProcessId(hwnd);
+        hwnd = Win32api.getProcessHwnd(windowName);
+        int processId = Win32api.getProcessId(hwnd);
 
         this.wowMemory = new WowMemory(processId);
     }
@@ -51,18 +51,18 @@ public final class WowInstance {
     }
 
     public void keyDown(WinKey key) {
-        Win32Api.keyDown(hwnd, key);
+        Win32api.keyDown(hwnd, key);
     }
 
     public void keyUp(WinKey key) {
-        Win32Api.keyUp(hwnd, key);
+        Win32api.keyUp(hwnd, key);
     }
 
     public void keyDown(int key) {
-        Win32Api.keyDown(hwnd, key);
+        Win32api.keyDown(hwnd, key);
     }
 
     public void keyUp(int key) {
-        Win32Api.keyUp(hwnd, key);
+        Win32api.keyUp(hwnd, key);
     }
 }

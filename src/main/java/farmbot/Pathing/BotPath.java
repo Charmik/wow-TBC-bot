@@ -50,41 +50,40 @@ public class BotPath {
         File[] files = folder.listFiles();
         List<Path> paths = new ArrayList<>();
         for (File file : files) {
-            System.out.println(file.getName());
-            System.out.println(file.getAbsolutePath());
-            Path path = getPath(file.getAbsolutePath());
+            logger.info(file.getName());
+            Path path = getPath(file.getPath());
             paths.add(path);
         }
-        System.out.println(Arrays.toString(files));
+        logger.info(Arrays.toString(files));
         paths.sort(Comparator.comparing(Path::getFileName));
         return paths;
     }
 
+    // just for testing
     public static void main(String[] args) {
         GlobalGraph globalGraph = new GlobalGraph();
-        System.out.println();
-        System.out.println();
-        System.out.println();
         globalGraph.buildGlobalGraph();
-        globalGraph.floyd();
-/*
+
         for (; ; ) {
-            // globalGraph.buildGlobalGraph(); зависание jvm? what?
             long start = System.currentTimeMillis();
-            globalGraph.floyd();
+            globalGraph = new GlobalGraph();
+            globalGraph.buildGlobalGraph(); //bug jvm? what?
             System.out.println("time:" + (System.currentTimeMillis() - start));
         }
+
+        /*
+        globalGraph.floyd();
+        //add some stupid test that we have paths.size > 0
+        Path pathFromFile = getPathFromFile("30-32_needles.txt");
+        Point3D point3D = pathFromFile.getPoints().get(5);
+        for (int i = 0; i < 5; i++) {
+            System.out.println();
+        }
+        List<Graph.Vertex> vertices = globalGraph.getShortestPath(new Point3D(-5538.576, -3498.06, -51.020306), point3D);
+        System.out.println("size=" + vertices.size());
+        vertices.forEach(System.out::println);
         */
 
-        //add some stupid test that we have paths.size > 0
-        Path pathFromFile = getPathFromFile("48-50_ungoro");
-        Point3D point3D = pathFromFile.getPoints().get(5);
-
-//        List<Graph.Vertex> vertices = globalGraph.XXXTest(new Point3D(-6735.23046875, -2138.382080078125, -270.9570007324219), point3D);
-        /*
-         */
-        List<Graph.Vertex> vertices = globalGraph.XXXTest(new Point3D(-7203.90185546875, -2436.10302734375, -218.1342010498047), point3D); //на дорожке где-то (from spirit)
-        vertices.forEach(System.out::println);
     }
 
     public static boolean killGrayMobs(String[] args) {

@@ -306,5 +306,5 @@ public class BgBot {
         this.path.setNearestPoint((List)this.path.getPoints().get(index));
         this.path.setFromBase(index == 0);
     }
-    */
+*/
 }

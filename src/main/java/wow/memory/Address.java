@@ -151,6 +151,7 @@ public interface Address {
         OBJ(0x28, 320),
         OBJ_TARGET(0x28, 4),
         OBJ_UNIT_HP(0x40, 4),
+        OBJ_UNIT_MANA(0x44, 4),
         OBJ_UNIT_FACTION(0x74, 4),
         OBJ_UNIT_LEVEL(0x70, 4);
 

@@ -12,6 +12,8 @@ import wow.memory.WowMemory;
  */
 public final class UnitObject extends CreatureObject {
     private static final Address HEALTH_DESCRIPTOR = Address.DESCRIPTOR.OBJ_UNIT_HP;
+    private static final Address MANA_DESCRIPTOR = Address.DESCRIPTOR.OBJ_UNIT_MANA;
+    private static final Address UNIT_BLOCK_DESCRIPTOR = Address.DESCRIPTOR.OBJ;
     private static final Address COMBO_POINTS = Address.STATIC.TARGET_COMBO_POINTS;
 
     public UnitObject(
@@ -25,6 +27,10 @@ public final class UnitObject extends CreatureObject {
 
     public int getHealth() {
         return readIntDescriptor(HEALTH_DESCRIPTOR);
+    }
+
+    public int getMana() {
+        return readIntDescriptor(MANA_DESCRIPTOR);
     }
 
     public boolean isDead() {
@@ -42,5 +48,17 @@ public final class UnitObject extends CreatureObject {
             "guid=" + guid +
             " baseAddress=" + baseAddress +
             '}';
+    }
+
+    //TODO: delete
+    public int[] readBlock() {
+        return readBlock(UNIT_BLOCK_DESCRIPTOR, 0);
+        /*
+        Memory memory = readMemory(baseAddress, Address.DESCRIPTOR.OBJ);
+        int arr[] = new int[100];
+        memory.read(0, arr, 0, 7);
+        memory.clear();
+        return arr;
+        */
     }
 }

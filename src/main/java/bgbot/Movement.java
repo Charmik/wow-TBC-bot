@@ -1,7 +1,17 @@
 package bgbot;
 
+import javafx.geometry.Point3D;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import util.Utils;
+import winapi.components.WinKey;
+import wow.WowInstance;
+import wow.components.Navigation;
+import wow.memory.CtmManager;
+import wow.memory.objects.Player;
+
 public class Movement {
-    /*
+
     private static Logger log = LoggerFactory.getLogger(Movement.class);
     private Player player;
     private CtmManager ctmManager;
@@ -13,14 +23,17 @@ public class Movement {
         this.wowInstance = wowInstance;
     }
 
-    boolean goToNextPoint(Coordinates3D point, boolean fromBase) {
+    boolean goToNextPoint(
+        Navigation.Coordinates3D point,
+        boolean fromBase)
+    {
         return this.goToNextPoint(new Point3D((double)point.x, (double)point.y, (double)point.z), fromBase);
     }
 
     private boolean goToNextPoint(Point3D nextPoint, boolean fromBase) {
         int count = 0;
 
-        while(!Navigation.isNear(new Coordinates3D(this.player.getX(), this.player.getY(), this.player.getZ()), nextPoint)) {
+        while (!Navigation.isNear(new Navigation.Coordinates3D(this.player.getX(), this.player.getY(), this.player.getZ()), nextPoint)) {
             if (this.player.getZone().isShatrhCity()) {
                 return false;
             }
@@ -63,5 +76,5 @@ public class Movement {
         }
 
     }
-    */
+
 }

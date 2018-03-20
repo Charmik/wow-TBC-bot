@@ -14,6 +14,7 @@ import util.Utils;
 import winapi.components.WinKey;
 import wow.WowInstance;
 import wow.memory.CtmManager;
+import wow.memory.ObjectManager;
 import wow.memory.objects.CreatureObject;
 import wow.memory.objects.Player;
 import wow.memory.objects.UnitObject;
@@ -26,6 +27,7 @@ public class Fighter {
     private final Healer healer;
     private Graph graph;
     private TargetManager targetManager;
+    private ObjectManager objectManager;
 
     Fighter(
         Player player,
@@ -33,7 +35,8 @@ public class Fighter {
         WowInstance wowInstance,
         Healer healer,
         Graph graph,
-        TargetManager targetManager)
+        TargetManager targetManager,
+        ObjectManager objectManager)
     {
         this.player = player;
         this.ctmManager = ctmManager;
@@ -41,6 +44,7 @@ public class Fighter {
         this.healer = healer;
         this.graph = graph;
         this.targetManager = targetManager;
+        this.objectManager = objectManager;
     }
 
     void kill(
@@ -58,6 +62,8 @@ public class Fighter {
     {
         healer.heal(state.getTarget());
         wowInstance.click(WinKey.D3);
+        int initUnitMana = state.getTarget().getMana();
+        boolean wentAsMeele = false;
         if (state.updateTargetHealth() != 0) {
             int cnt = -1;
             Set<UnitObject> unitsForLoot = new HashSet<>();
@@ -65,6 +71,7 @@ public class Fighter {
             int countNotSuccesGoToMob = 0;
             state.updateInCombat();
             for (; state.getTargetHealth() > 90 || state.isInCombat() || state.getTargetHealth() > 0; Utils.sleep(10L)) {
+                ++cnt;
                 state.updateInCombat();
                 if (state.isInCombat()
                     && !state.target.isTargetingMe()) {
@@ -72,7 +79,12 @@ public class Fighter {
                     ctmManager.stop();
                     break;
                 }
-                ++cnt;
+                //it means mob casting something, maybe he is away from us
+                if (state.getTarget().getMana() < initUnitMana && !wentAsMeele) {
+                    logger.info("mana of unit changed, go to attack it as melee");
+                    Looter.goTo(state.getTarget(), nextPoint, true);
+                    wentAsMeele = true;
+                }
                 if (cnt % 100 == 0) {
                     state.updateComboPoints();
                     state.updateEnergy();
@@ -81,19 +93,21 @@ public class Fighter {
                     logger.info("died, targetHealth=" + state.getTargetHealth());
                     break;
                 }
-                if (cnt % 15 == 0) {
+                if (cnt % 5 == 0) {
                     healer.heal(state.getTarget());
+                    //because now we have player as a target
+                    findNextMobInFight(state);
                 }
                 if (cnt % 20 == 0) {
                     state.updatePlayerTarget();
                 }
-                if (cnt % 300 == 0) {
-                    System.out.println("face to target");
+                if (cnt % 50 == 0) {
+                    logger.info("face to target");
                     ctmManager.face(state.getTarget());
                     Utils.sleep(100);
                 }
                 if (cnt < 100 && cnt % 25 == 0 || cnt % 100 == 0) {
-                    boolean success = Looter.goTo(state.getTarget(), nextPoint);
+                    boolean success = Looter.goTo(state.getTarget(), nextPoint, false);
                     if (player.getLevel() < 20 && cnt % 200 == 0) {
                         ctmManager.face(state.getTarget());
                     }
@@ -105,10 +119,9 @@ public class Fighter {
                 }
                 if (countNotSuccesGoToMob > 7) {
                     logger.info("quit from findNearestMobAndAttack because countNotSuccesGoToMob=" + countNotSuccesGoToMob);
-
                     break;
                 }
-                if (cnt % 1000 == 0) {
+                if (cnt % 2000 == 0) {
                     if (state.getTargetHealth() == prevHealth) {
                         logger.info("quit from findNearestMobAndAttack because target's hp doesn't change");
                         wowInstance.click(WinKey.S, 10000L);
@@ -120,6 +133,7 @@ public class Fighter {
                     state.updateInCombat();
                 }
                 if (cnt % 300 == 0) {
+                    objectManager.refillUnits();
                     findNextMobInFight(state);
                     state.updatePlayerTarget();
                 }
@@ -136,8 +150,8 @@ public class Fighter {
     }
 
     private void findNextMobInFight(Fighter.State state) {
-        logger.info("choose target who attacks me");
         if (state.isInCombat()) {
+            logger.info("choose target who attacks me");
             List<UnitObject> mobsForAttack = targetManager.getMobsForAttack();
             if (mobsForAttack != null && mobsForAttack.size() > 0) {
                 logger.info("found mob in findNearestMobAndAttack");
@@ -149,6 +163,12 @@ public class Fighter {
 
     public void killListOfMobs(List<UnitObject> enemies) {
         Point3D nearestPointToPlayer = graph.getNearestPointTo(player).getKey();
+        logger.info("killListOfMobs, my Health is:" + player.getHealthPercent());
+        //we respawned and mobs attacked us!
+        if (player.getHealthPercent() <= 50 && enemies.size() > 0) {
+            logger.info("player.getHealthPercent() <= 50, so let's heal before fight, enemies.size()={}", enemies.size());
+            healer.heal(enemies.get(0));
+        }
         for (UnitObject unit : enemies) {
             logger.info("found nearest unit=" + unit + " for attack, going to kill!");
             kill(nearestPointToPlayer, unit);

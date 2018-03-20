@@ -1,7 +1,6 @@
 package farmbot.Pathing;
 
 import java.awt.*;
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
@@ -10,24 +9,24 @@ import javax.swing.*;
 import farmbot.Pathing.Graph.Vertex;
 
 public class GraphDrawer extends JComponent {
+
     private Graph graph;
 
-    public GraphDrawer(Graph graph) {
-        this.graph = graph;
+    public GraphDrawer(Path path) {
+        this.graph = new Graph();
+        graph.buildGraph(path);
     }
 
-    public static void main(String[] args) throws IOException {
-        Path path = BotPath.getPath("sylvanar_farm.txt");
-        Graph graph = new Graph();
-        graph.buildGraph(path);
-        GraphDrawer graphDrawer = new GraphDrawer(graph);
+    public static void main(String[] args) {
+        Path path = BotPath.getPathFromFile("30-32_needles.txt");
+        GraphDrawer graphDrawer = new GraphDrawer(path);
         graphDrawer.draw();
     }
 
     public void draw() {
         JFrame testFrame = new JFrame();
         testFrame.setDefaultCloseOperation(2);
-        this.setPreferredSize(new Dimension(1500, 1000));
+        this.setPreferredSize(new Dimension(1000, 800));
         testFrame.getContentPane().add(this, "Center");
         JPanel buttonsPanel = new JPanel();
         testFrame.getContentPane().add(buttonsPanel, "South");
@@ -40,7 +39,7 @@ public class GraphDrawer extends JComponent {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         this.graph.floyd();
-        List<Vertex> shortestPath = this.graph.getShortestPath(10, 95);
+        List<Vertex> shortestPath = this.graph.getShortestPath(5, 45);
 
         Iterator var3;
         Vertex current;
