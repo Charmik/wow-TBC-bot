@@ -1,0 +1,1 @@
+gradlew fatJarRecordPath && java -jar build/libs/recordPath-wow-bot-1.0-SNAPSHOT.jar

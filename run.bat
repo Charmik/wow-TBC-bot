@@ -1,0 +1,1 @@
+gradlew fatJar && java -jar build/libs/run-wow-bot-1.0-SNAPSHOT.jar
