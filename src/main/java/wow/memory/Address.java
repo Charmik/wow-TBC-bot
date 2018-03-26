@@ -48,7 +48,10 @@ public interface Address {
         CTM_MYSTERY_MOVING(0x3F00, 4),
         CTM_MYSTERY_ATTACKING(0x406A, 4),
         CTM_MYSTERY_INTERACT_UNIT(0x4031, 4),
-        CTM_MYSTERY_INTERACT_OBJECT(0x4090, 4);
+        CTM_MYSTERY_INTERACT_OBJECT(0x4090, 4),
+
+        /* ------- AUCTION ------- */
+        AUCTION_POINTER_TO_ITEMS(0x00CE0CC8, 4);
 
         private final long address;
         private final int bytes;
@@ -111,7 +114,10 @@ public interface Address {
         OBJ_BASE_Z(0xBF8, 4),
 
         /* ------- PLAYERS ------- */
-        OBJ_PLAYER_ISCASTING(0xf3c, 4);
+        OBJ_PLAYER_ISCASTING(0xf3c, 4),
+
+        /* ------- AUCTION ------- */
+        AUCTION_ITEM_INFORMATION(0x00, 144);
 
         private final long address;
         private final int bytes;
