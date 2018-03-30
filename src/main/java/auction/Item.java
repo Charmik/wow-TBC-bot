@@ -3,15 +3,16 @@ package auction;
 import java.util.Objects;
 
 public class Item implements Comparable<Item> {
-    private final int auctionId;
-    private final int itemId;
-    private final int count;
+    private int auctionId;
+    private int itemId;
+    private int count;
     //-1 if you can make "right click to item", 0 otherwise
-    private final int usableItem;
-    private final int xxx;
-    private final int currentBid;
-    private final int buyOut;
-    private final int expireTime;
+    private int usableItem;
+
+    private int playerId;
+    private int currentBid;
+    private int buyOut;
+    private int expireTime;
 
 
     //from 3.0.9
@@ -43,7 +44,7 @@ public class Item implements Comparable<Item> {
         int itemId,
         int count,
         int usableItem,
-        int xxx,
+        int playerId,
         int currentBid,
         int buyOut,
         int expireTime)
@@ -52,7 +53,7 @@ public class Item implements Comparable<Item> {
         this.itemId = itemId;
         this.count = count;
         this.usableItem = usableItem;
-        this.xxx = xxx;
+        this.playerId = playerId;
         this.currentBid = currentBid;
         this.buyOut = buyOut;
         this.expireTime = expireTime;
@@ -64,7 +65,7 @@ public class Item implements Comparable<Item> {
         this.count = arr[23];
         this.usableItem = arr[24];
         // TODO: understand what is it
-        this.xxx = arr[26];
+        this.playerId = arr[26];
         this.currentBid = arr[28];
         this.buyOut = arr[30];
         this.expireTime = arr[31];
@@ -72,7 +73,14 @@ public class Item implements Comparable<Item> {
 
     @Override
     public String toString() {
-        return auctionId + " " + itemId + " " + count + " " + usableItem + " " + xxx + " " + currentBid + " " + buyOut + " " + expireTime;
+        return auctionId + " " +
+            String.format("%-5s", itemId) + " " +
+            String.format("%-2s", count) + " " +
+            String.format("%-2s", usableItem) + " " +
+            String.format("%-7s", playerId) + " " +
+            String.format("%-8s", currentBid) + " " +
+            String.format("%-8s", buyOut) + " " +
+            expireTime;
     }
 
     public int getAuctionId() {
@@ -102,6 +110,42 @@ public class Item implements Comparable<Item> {
 
     public int getExpireTime() {
         return expireTime;
+    }
+
+    public int getPlayerId() {
+        return playerId;
+    }
+
+    public void setPlayerId(int playerId) {
+        this.playerId = playerId;
+    }
+
+    public void setAuctionId(int auctionId) {
+        this.auctionId = auctionId;
+    }
+
+    public void setItemId(int itemId) {
+        this.itemId = itemId;
+    }
+
+    public void setCount(int count) {
+        this.count = count;
+    }
+
+    public void setUsableItem(int usableItem) {
+        this.usableItem = usableItem;
+    }
+
+    public void setCurrentBid(int currentBid) {
+        this.currentBid = currentBid;
+    }
+
+    public void setBuyOut(int buyOut) {
+        this.buyOut = buyOut;
+    }
+
+    public void setExpireTime(int expireTime) {
+        this.expireTime = expireTime;
     }
 
     @Override

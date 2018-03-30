@@ -21,26 +21,28 @@ import org.slf4j.LoggerFactory;
 import winapi.components.WinKey;
 import wow.WowInstance;
 import wow.memory.objects.AuctionManager;
+import wow.memory.objects.Player;
 
 public class AuctionBot {
 
     private static final Logger logger = LoggerFactory.getLogger(Bot.class);
-    private static final int MAX_PAGES = 600;
+    private static final int MAX_PAGES = 1000;
     private static final int SLEEP1 = 1350;
     private static final int SLEEP2 = 200;
     private static final Random random = new Random();
-    private static final String FILE_NAME = "auc_" + SLEEP1 + "_" + SLEEP2 + "_" + random.nextInt(30) + ".txt";
+    private static final String FILE_NAME = "auc_" + random.nextInt(99) + ".txt";
 
     private static final WowInstance wowInstance = new WowInstance("World of Warcraft");
     public final AuctionManager auctionManager;
+    private final Player player;
 
     private AuctionBot() {
         this.auctionManager = wowInstance.getAuctionManager();
+        player = wowInstance.getPlayer();
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
         AuctionBot auctionBot = new AuctionBot();
-        logger.info("FILE_NAME=" + FILE_NAME);
         auctionBot.saveDataToFile();
 //        printCurrentPage(auctionBot);
 //        sortAuctionId(auctionBot, "auc_3000_3000_12.txt");
@@ -76,6 +78,7 @@ public class AuctionBot {
     }
 
     private void saveDataToFile() throws FileNotFoundException, UnsupportedEncodingException, InterruptedException {
+        logger.info("FILE_NAME=" + FILE_NAME + " isAlliance? - " + player.getFaction().isAlliance());
         List<Item> items = getAllItemsFromAuc();
         int oldSize = items.size();
         //but of the wow, sometimes you see the same items by scanning, so delete the equals by auctionId
@@ -94,7 +97,7 @@ public class AuctionBot {
             //logger.info(item.toString());
             writer.println(item);
         }
-        logger.info("closing file");
+        logger.info("closing file:" + FILE_NAME);
         writer.close();
     }
 
@@ -104,32 +107,26 @@ public class AuctionBot {
         List<Integer> readFromMemoryCounts = new ArrayList<>();
         long startTime = System.currentTimeMillis();
 
-        long longestScanning = -1;
         int countForceScanning = 0;
         boolean foundLastPage = false;
         for (int page = 1; page <= MAX_PAGES; page++) {
-            if (page % 10 == 0) {
-                logger.info("page=" + page);
-            }
+            //logger.info("page=" + page);
             int lastExpiredTime = -1;
             if (itemsFromCurrentPage != null) {
                 lastExpiredTime = itemsFromCurrentPage[0].getExpireTime();
             }
             int countGetPreviousPage = 1;
-            long startPageScanning = System.currentTimeMillis();
-            boolean flagForceButtonNextPage = false;
             do {
                 itemsFromCurrentPage = auctionManager.getItemsFromCurrentPage();
                 countGetPreviousPage++;
                 //try to force nextPage again, we will miss this page, doesn't matter, bug wow.
-                if (countGetPreviousPage % 5000 == 0) {
+                if (countGetPreviousPage % 3000 == 0) {
                     logger.info("can't read memory too long, try force next page");
                     clickNextPage();
-                    flagForceButtonNextPage = true;
                     countForceScanning++;
                 }
                 //found lastPage
-                if (countGetPreviousPage == 15000) {
+                if (countGetPreviousPage == 9000) {
                     logger.info("can't read memory too long, it should be last page, exit");
                     foundLastPage = true;
                     break;
@@ -139,23 +136,20 @@ public class AuctionBot {
                 break;
             }
             Collections.addAll(items, itemsFromCurrentPage);
-            long timePageScannig = System.currentTimeMillis() - startPageScanning;
-            if (!flagForceButtonNextPage && timePageScannig > longestScanning) {
-                longestScanning = timePageScannig;
-            }
-            //logger.info("countGetPreviousPage=" + countGetPreviousPage);
             readFromMemoryCounts.add(countGetPreviousPage);
             Thread.sleep(SLEEP1);
             clickNextPage();
             Thread.sleep(SLEEP2);
         }
-        logger.info("longestScanning=" + longestScanning);
         logger.info("countForceScanning=" + countForceScanning);
         logger.info(readFromMemoryCounts.toString());
         logger.info("scanningTime:" + (System.currentTimeMillis() - startTime) / 1000);
         return items;
     }
 
+    private void clickPrevPage() {
+        wowInstance.click(WinKey.D3);
+    }
 
     private void clickNextPage() {
         wowInstance.click(WinKey.D4);
