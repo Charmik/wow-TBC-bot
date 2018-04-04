@@ -6,7 +6,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,42 +31,57 @@ public class Buyer {
     private static final int SLEEP1 = 1350;
     private static final int SLEEP2 = 200;
 
-    private static final WowInstance wowInstance = new WowInstance("World of Warcraft");
-    final String faction;
+    private static final WowInstance wowInstance = WowInstance.getInstance();
+    private final String faction;
     private final FilesManager filesManager;
     private final Analyzer analyzer;
     private final ObjectManager objectManager;
     private Player player;
     private CtmManager ctmManager;
-    private AuctionManager auctionManager;
     private String tmpFile;
-    private BufferedWriter bw;
+    private BufferedWriter historyBufferedWriter;
+    private BufferedWriter logPricesBufferedWriter;
+    private boolean scanOnlyFirstPage;
+    private Set<Integer> setBuyingItems = new HashSet<>();
 
-    public Buyer() {
+    public Buyer(boolean scanOnlyFirstPage) throws IOException {
         this.player = wowInstance.getPlayer();
         if (player.getFaction().isHorde()) {
-            faction = "horde";
+            this.faction = "horde";
         } else {
-            faction = "alliance";
+            this.faction = "alliance";
         }
         logger.info("faction: " + faction);
-        this.analyzer = new Analyzer("history_auction" + File.separator + faction);
+        String folder = "history_auction" + File.separator + faction;
+        this.analyzer = new Analyzer(wowInstance, folder);
         this.ctmManager = wowInstance.getCtmManager();
         this.objectManager = wowInstance.getObjectManager();
-        tmpFile = "history_auction" + File.separator + faction + File.separator + "tmp.txt";
-        filesManager = new FilesManager("history_auction" + File.separator + faction);
+        this.tmpFile = folder + File.separator + "tmp.txt";
+        this.filesManager = new FilesManager(folder);
+        this.logPricesBufferedWriter = new BufferedWriter(new FileWriter(folder + File.separator + "logPrices.txt", true));
+        this.scanOnlyFirstPage = scanOnlyFirstPage;
     }
 
     public static void main(String[] args) throws InterruptedException, ParseException, IOException {
-        Buyer buyer = new Buyer();
+        boolean scanOnlyFirstPage = false;
+        if (args.length > 0) {
+            logger.info("going to scan only first page");
+            scanOnlyFirstPage = true;
+        }
+
+        Buyer buyer = new Buyer(scanOnlyFirstPage);
         buyer.analyze();
+//        buyer.printCurrentPage();
     }
 
-    void resetAuc() {
-        logger.info("resetAuc");
+    void resetAuc() throws IOException {
+        if (!scanOnlyFirstPage) {
+            resetTmpFile();
+        }
+        logger.info("reset auction");
         //close auctionHouse
         wowInstance.click(WinKey.D1);
-        Utils.sleep(3000);
+        Utils.sleep(6000);
         objectManager.refillUnits();
         Optional<UnitObject> nearestUnitTo = objectManager.getNearestUnitTo(this.player);
         if (nearestUnitTo.isPresent()) {
@@ -88,78 +105,144 @@ public class Buyer {
             logger.error("auc wasn't found");
         }
         wowInstance.click(WinKey.D5);
-        Utils.sleep(3000);
+        Utils.sleep(2000);
+    }
+
+    private void resetTmpFile() throws IOException {
+        historyBufferedWriter = new BufferedWriter(new FileWriter(tmpFile));
+        initWrite();
     }
 
 
     void analyze() throws InterruptedException, IOException, ParseException {
+        if (scanOnlyFirstPage) {
+            analazeOnlyFirstPage();
+        } else {
+            analyzeFullAuction();
+        }
+    }
+
+    private void analazeOnlyFirstPage() throws IOException {
+        logger.info("analazeOnlyFirstPage");
+        resetAuc();
+        AuctionManager auctionManager = wowInstance.getAuctionManager();
+        int count = -1;
+        for (; ; ) {
+            count++;
+            if (count % 50 == 0) {
+                try {
+                    analyzer.calculate();
+                } catch (Throwable e) {
+                    count = -1;
+                    continue;
+                }
+            }
+            Item[] itemsFromCurrentPage = auctionManager.getItemsFromCurrentPage();
+            if (!validateItems(itemsFromCurrentPage)) {
+                resetAuc();
+                auctionManager = wowInstance.getAuctionManager();
+                continue;
+            }
+            for (int i = 0; i < itemsFromCurrentPage.length; i++) {
+                Item item = itemsFromCurrentPage[i];
+                Analyzer.BuyType buyType = analyzer.buyItem(item, i + 1);
+                if (buyType != Analyzer.BuyType.NONE) {
+                    logBuyingPrice(item);
+                    // TODO: delete this
+                    Utils.sleep(3000);
+                }
+            }
+            wowInstance.click(WinKey.D5);
+            Utils.sleep(3000);
+        }
+    }
+
+    private void analyzeFullAuction() throws IOException, ParseException, InterruptedException {
+        logger.info("analyzeFullAuction");
         boolean firstIteration = true;
         for (; ; ) {
             //TODO: merge only current.txt file not all of them every time
+            resetTmpFile();
             analyzer.calculate();
             resetAuc();
-            bw = new BufferedWriter(new FileWriter(tmpFile));
-            initWrite();
-            this.auctionManager = wowInstance.getAuctionManager();
-
-            Item[] itemsFromCurrentPage = null;
-            boolean foundLastPage = false;
-            for (int page = 1; page <= MAX_PAGES; page++) {
-                if (page % 30 == 0) {
-                    //System.out.println("page:" + page);
+            AuctionManager auctionManager = wowInstance.getAuctionManager();
+            int page;
+            for (page = 1; page <= MAX_PAGES; page++) {
+                if (page % 30 == 0 && firstIteration) {
+                    System.out.println("page:" + page);
                 }
-                int lastExpiredTime = -1;
-                if (itemsFromCurrentPage != null) {
-                    lastExpiredTime = itemsFromCurrentPage[0].getExpireTime();
-                }
-                int countGetPreviousPage = 1;
-                do {
-                    itemsFromCurrentPage = auctionManager.getItemsFromCurrentPage();
-                    countGetPreviousPage++;
-                    //try to force nextPage again, we will miss this page, doesn't matter, bug wow.
-                    if (countGetPreviousPage % 10000 == 0) {
-                        clickNextPage();
-                    }
-                    //found lastPage
-                    if (countGetPreviousPage == 30000) {
-                        foundLastPage = true;
-                        break;
-                    }
-                } while (itemsFromCurrentPage[0].getExpireTime() == lastExpiredTime);
-                if (foundLastPage) {
+                Item[] itemsFromCurrentPage = auctionManager.getItemsFromCurrentPageWithRetry();
+                if (itemsFromCurrentPage == null) {
                     break;
                 }
-                //if (!firstIteration) {
-                for (Item item : itemsFromCurrentPage) {
-                    analyzer.buyItem(item);
+                if (!firstIteration) {
+                    for (int i = 0; i < itemsFromCurrentPage.length; i++) {
+                        Item item = itemsFromCurrentPage[i];
+                        Analyzer.BuyType buyType = analyzer.buyItem(item, i + 1);
+                        if (buyType != Analyzer.BuyType.NONE) {
+                            logBuyingPrice(item);
+                            Utils.sleep(1 * 60 * 1000);
+                        }
+                        //sell item price: max(currentAuc(min), stats.min)
+                    }
                 }
-                //}
                 writeCurrentAuc(itemsFromCurrentPage);
                 Thread.sleep(SLEEP1);
-                clickNextPage();
+                auctionManager.nextPage();
                 Thread.sleep(SLEEP2);
             }
+            if (page < 300) {
+                logger.warn("found not enough pages, something wrong");
+            }
             firstIteration = false;
-            bw.flush();
-            bw.close();
+            historyBufferedWriter.flush();
+            historyBufferedWriter.close();
             filesManager.addToDataBase("history_auction" + File.separator + faction, tmpFile);
         }
     }
 
+    private boolean validateItems(Item[] itemsFromCurrentPage) {
+        if (itemsFromCurrentPage == null) {
+            return false;
+        }
+        for (Item item : itemsFromCurrentPage) {
+            if (item.getAuctionId() == 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void logBuyingPrice(Item item) throws IOException {
+        if (!setBuyingItems.contains(item.getAuctionId())) {
+            logPricesBufferedWriter.write(new Date() + " " + scanOnlyFirstPage + " " + item + "\n");
+            logPricesBufferedWriter.flush();
+            setBuyingItems.add(item.getAuctionId());
+        }
+    }
+
     private void initWrite() throws IOException {
-        bw.write(new Date() + "\n");
-        bw.write("current, don't have statistics\n");
+        historyBufferedWriter.write(new Date() + "\n");
+        historyBufferedWriter.write("current, don't have statistics\n");
     }
 
     private void writeCurrentAuc(Item[] items) throws IOException {
         for (Item item : items) {
-            bw.write(item.toString() + "\n");
+            historyBufferedWriter.write(item.toString() + "\n");
         }
-        bw.flush();
     }
 
-    private void clickNextPage() {
-        wowInstance.click(WinKey.D4);
-    }
 
+    private void printCurrentPage() throws IOException, ParseException, InterruptedException {
+        AuctionManager auctionManager = wowInstance.getAuctionManager();
+        Item[] itemsFromCurrentPage = auctionManager.getItemsFromCurrentPageWithRetry();
+        if (itemsFromCurrentPage == null) {
+            return;
+        }
+        for (int i = 0; i < itemsFromCurrentPage.length; i++) {
+            Item item = itemsFromCurrentPage[i];
+            System.out.println("index=" + i + " " + item);
+        }
+
+    }
 }

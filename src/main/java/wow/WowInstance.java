@@ -7,12 +7,20 @@ import winapi.components.WinKey;
 import wow.memory.CtmManager;
 import wow.memory.ObjectManager;
 import wow.memory.WowMemory;
+import wow.memory.objects.AuctionManager;
 import wow.memory.objects.Player;
 
 /**
  * @author Cargeh
  */
 public final class WowInstance {
+
+    private static final WowInstance instance = new WowInstance("World of Warcraft");
+
+    public static WowInstance getInstance() {
+        return instance;
+    }
+
     private final HWND hwnd;
     private final WowMemory wowMemory;
 
@@ -27,6 +35,10 @@ public final class WowInstance {
         return wowMemory.getPlayer();
     }
 
+    public AuctionManager getAuctionManager() {
+        return wowMemory.getAuctionManager();
+    }
+
     public ObjectManager getObjectManager() {
         return wowMemory.getObjectManager();
     }
@@ -39,6 +51,10 @@ public final class WowInstance {
         keyDown(key);
         Utils.sleep(50);
         keyUp(key);
+    }
+
+    public void clickEditing(WinKey key) {
+        keyDownEditing(key);
     }
 
     public void click(
@@ -56,6 +72,10 @@ public final class WowInstance {
 
     public void keyUp(WinKey key) {
         Win32api.keyUp(hwnd, key);
+    }
+
+    public void keyDownEditing(WinKey key) {
+        Win32api.keyDownEditing(hwnd, key);
     }
 
     public void keyDown(int key) {

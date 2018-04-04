@@ -64,9 +64,14 @@ public class Item implements Comparable<Item> {
         this.itemId = arr[2];
         this.count = arr[23];
         this.usableItem = arr[24];
-        // TODO: understand what is it
         this.playerId = arr[26];
-        this.currentBid = arr[28];
+        //28 - start bid, 34 - current bid, if it was done
+        int startBid = arr[28];
+        if (arr[34] != 0) {
+            this.currentBid = arr[34];
+        } else {
+            this.currentBid = startBid;
+        }
         this.buyOut = arr[30];
         this.expireTime = arr[31];
     }

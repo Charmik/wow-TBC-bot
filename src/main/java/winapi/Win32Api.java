@@ -10,6 +10,7 @@ import com.sun.jna.ptr.IntByReference;
 import winapi.components.User32Extended;
 import winapi.components.WinKey;
 
+import static com.sun.jna.platform.win32.WinUser.WM_CHAR;
 import static com.sun.jna.platform.win32.WinUser.WM_KEYDOWN;
 import static com.sun.jna.platform.win32.WinUser.WM_KEYUP;
 
@@ -48,6 +49,13 @@ public final class Win32api {
         WinKey key)
     {
         user32.SendMessage(hwnd, WM_KEYUP, key.getWParam(), null);
+    }
+
+    public static void keyDownEditing(
+        HWND hwnd,
+        WinKey key)
+    {
+        user32.SendMessage(hwnd, WM_CHAR, key.getWParam(), null);
     }
 
     public static void keyDown(

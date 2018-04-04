@@ -2,6 +2,7 @@ package wow.memory;
 
 import com.sun.jna.platform.win32.WinNT.HANDLE;
 import winapi.MemoryApi;
+import wow.memory.objects.AuctionManager;
 import wow.memory.objects.Player;
 
 import static com.sun.jna.platform.win32.WinNT.PROCESS_VM_OPERATION;
@@ -19,7 +20,6 @@ public final class WowMemory {
 
     public WowMemory(int processId) {
         this.processMemoryHandle = MemoryApi.openProcess(PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, processId);
-
         this.player = new Player(this);
         this.objectManager = new ObjectManager(this);
         this.ctmManager = new CtmManager(this);
@@ -39,5 +39,9 @@ public final class WowMemory {
 
     public HANDLE getProcessMemoryHandle() {
         return processMemoryHandle;
+    }
+
+    public AuctionManager getAuctionManager() {
+        return new AuctionManager(this);
     }
 }

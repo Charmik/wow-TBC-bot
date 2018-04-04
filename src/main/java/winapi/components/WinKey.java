@@ -43,6 +43,32 @@ public enum WinKey {
     X(88),
     Y(89),
     Z(90),
+    a(97),
+    b(98),
+    c(99),
+    d(100),
+    e(101),
+    f(102),
+    g(103),
+    h(104),
+    i(105),
+    j(106),
+    k(107),
+    l(108),
+    m(109),
+    n(110),
+    o(111),
+    p(112),
+    q(113),
+    r(114),
+    s(115),
+    t(116),
+    u(117),
+    v(118),
+    w(119),
+    x(120),
+    y(121),
+    z(122),
     MOUSE_LEFT(1),
     MOUSE_RIGHT(2),
     MOUSE_MIDDLE(4),
@@ -57,7 +83,7 @@ public enum WinKey {
     SHIFT_RIGHT(161),
     CAPS_LOCK(20),
     BACKSPACE(8),
-    PRINTSCREEN(44),
+    COMMA(44),
     ENTER(13),
     ESC(27),
     SPACEBAR(32),
@@ -66,7 +92,8 @@ public enum WinKey {
     ARROW_LEFT(37),
     ARROW_UP(38),
     ARROW_RIGHT(39),
-    ARROW_DOWN(40),
+    LEFT_BRACKET(40),
+    RIGHT_BRACKET(41),
     F1(112),
     F2(113),
     F3(114),
@@ -89,7 +116,10 @@ public enum WinKey {
     NUMPAD_6(102),
     NUMPAD_7(103),
     NUMPAD_8(104),
-    NUMPAD_9(105);
+    NUMPAD_9(105),
+
+    SLASH(47),
+    DOUBLE_QUOTES(34);
 
     public static final WinKey[] keys = new WinKey[255];
 
@@ -121,5 +151,19 @@ public enum WinKey {
         }
 
         return this.wparam;
+    }
+
+    public static WinKey mapIntToWinKey(int x) {
+        if (x == 0) return D0;
+        if (x == 1) return D1;
+        if (x == 2) return D2;
+        if (x == 3) return D3;
+        if (x == 4) return D4;
+        if (x == 5) return D5;
+        if (x == 6) return D6;
+        if (x == 7) return D7;
+        if (x == 8) return D8;
+        if (x == 9) return D9;
+        throw new RuntimeException(x + " is not a digit");
     }
 }

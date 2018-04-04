@@ -40,6 +40,28 @@ task fatJar(type: Jar) {
     with jar
 }
 
+task fatJarBuyBot(type: Jar) {
+    manifest {
+        attributes 'Implementation-Title': 'Gradle Jar File Example',
+                'Implementation-Version': version,
+                'Main-Class': 'auction.Buyer'
+    }
+    baseName = 'auction-bot';
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
+
+task fatJarHealBot(type: Jar) {
+    manifest {
+        attributes 'Implementation-Title': 'Gradle Jar File Example',
+                'Implementation-Version': version,
+                'Main-Class': 'healbot.HealBot'
+    }
+    baseName = 'healBot';
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
+
 task fatJarRecordPath(type: Jar) {
     manifest {
         attributes 'Implementation-Title': 'Gradle Jar File Example',
@@ -73,7 +95,6 @@ task jarBenchmark(type: Jar) {
     with jar
 }
 
-
 dependencies {
     compile (
             [group: 'net.java.dev.jna', name: 'jna-platform', version: '4.4.0'],
@@ -82,7 +103,8 @@ dependencies {
             [group: 'ch.qos.logback', name: 'logback-core', version: '1.2.3'],
             [group: 'net.sourceforge', name: 'javaml', version: '0.1.7'],
             ['org.openjdk.jmh:jmh-core:1.20'],
-            ['org.openjdk.jmh:jmh-generator-annprocess:1.20']
+            ['org.openjdk.jmh:jmh-generator-annprocess:1.20'],
+            [group: 'org.apache.commons', name: 'commons-math3', version: '3.0']
 
     )
 
