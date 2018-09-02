@@ -80,7 +80,8 @@ public class Fighter {
                     break;
                 }
                 //it means mob casting something, maybe he is away from us
-                if (state.getTarget().getMana() < initUnitMana && !wentAsMeele) {
+                //if (state.getTarget().getMana() < initUnitMana && !wentAsMeele) {
+                if (initUnitMana > 0) {
                     logger.info("mana of unit changed, go to attack it as melee");
                     Looter.goTo(state.getTarget(), nextPoint, true);
                     wentAsMeele = true;
@@ -102,12 +103,13 @@ public class Fighter {
                     state.updatePlayerTarget();
                 }
                 if (cnt % 50 == 0) {
-                    logger.info("face to target");
+                    logger.info("face to target health:" + state.getTarget().getHealth() + " level:" + state.getTarget().getLevel());
                     ctmManager.face(state.getTarget());
                     Utils.sleep(100);
                 }
                 if (cnt < 100 && cnt % 25 == 0 || cnt % 100 == 0) {
-                    boolean success = Looter.goTo(state.getTarget(), nextPoint, false);
+//                    boolean success = Looter.goTo(state.getTarget(), nextPoint, state.getPlayer().getHealthPercent() < 100);
+                    boolean success = Looter.goTo(state.getTarget(), nextPoint, true);
                     if (player.getLevel() < 20 && cnt % 200 == 0) {
                         ctmManager.face(state.getTarget());
                     }
@@ -117,7 +119,7 @@ public class Fighter {
                         logger.info("countNotSuccessGoToMob=" + countNotSuccesGoToMob);
                     }
                 }
-                if (countNotSuccesGoToMob > 7) {
+                if (countNotSuccesGoToMob > 3) {
                     logger.info("quit from findNearestMobAndAttack because countNotSuccesGoToMob=" + countNotSuccesGoToMob);
                     break;
                 }
@@ -138,7 +140,7 @@ public class Fighter {
                     state.updatePlayerTarget();
                 }
                 unitsForLoot.add(state.getTarget());
-                if (cnt % 50 == 0) {
+                if (cnt % 25 == 0) {
                     state.updateTargetHealth();
                     castSpell(state.getTargetHealth(), state.getComboPoints(), state.getEnergy(), cnt % 300 == 0);
                 }
@@ -163,11 +165,13 @@ public class Fighter {
 
     public void killListOfMobs(List<UnitObject> enemies) {
         Point3D nearestPointToPlayer = graph.getNearestPointTo(player).getKey();
-        logger.info("killListOfMobs, my Health is:" + player.getHealthPercent());
+        int healthPercent = player.getHealthPercent();
+        int manaPercent = player.getManaPercent();
+        logger.info("killListOfMobs, my Health is:" + healthPercent + " mana:" + manaPercent);
         //we respawned and mobs attacked us!
-        if (player.getHealthPercent() <= 50 && enemies.size() > 0) {
+        if (healthPercent <= 50 && healthPercent >= 47 && manaPercent >= 50 && manaPercent <= 55 && enemies.size() > 0) {
             logger.info("player.getHealthPercent() <= 50, so let's heal before fight, enemies.size()={}", enemies.size());
-            healer.heal(enemies.get(0));
+            healer.forceHeal(healthPercent, manaPercent, true);
         }
         for (UnitObject unit : enemies) {
             logger.info("found nearest unit=" + unit + " for attack, going to kill!");
@@ -194,6 +198,7 @@ public class Fighter {
         }
 
         if (castFaerieFire) {
+            logger.info("cast D1 - FF");
             wowInstance.click(WinKey.D1);
         }
 

@@ -1,15 +1,20 @@
 package bgbot;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import wow.components.Navigation;
+
 public class Path {
-    /*
-    private List<List<Coordinates3D>> points = new ArrayList();
+
+    private List<List<Navigation.Coordinates3D>> points = new ArrayList<>();
     private boolean fromBase = false;
-    private List<Coordinates3D> nearestPoint;
+    private List<Navigation.Coordinates3D> nearestPoint;
 
     public Path() {
     }
 
-    public void setPoints(List<List<Coordinates3D>> points) {
+    public void setPoints(List<List<Navigation.Coordinates3D>> points) {
         this.points = points;
     }
 
@@ -17,11 +22,11 @@ public class Path {
         this.fromBase = fromBase;
     }
 
-    public void setNearestPoint(List<Coordinates3D> nearestPoint) {
+    public void setNearestPoint(List<Navigation.Coordinates3D> nearestPoint) {
         this.nearestPoint = nearestPoint;
     }
 
-    public List<List<Coordinates3D>> getPoints() {
+    public List<List<Navigation.Coordinates3D>> getPoints() {
         return this.points;
     }
 
@@ -29,8 +34,8 @@ public class Path {
         return this.fromBase;
     }
 
-    public List<Coordinates3D> getNearestPoint() {
+    public List<Navigation.Coordinates3D> getNearestPoint() {
         return this.nearestPoint;
     }
-    */
+
 }

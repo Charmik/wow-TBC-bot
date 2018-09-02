@@ -8,7 +8,9 @@ import winapi.components.WinKey;
 import wow.WowInstance;
 import wow.components.Navigation;
 import wow.memory.CtmManager;
+import wow.memory.ObjectManager;
 import wow.memory.objects.Player;
+import wow.navigation.Zones;
 
 public class Movement {
 
@@ -16,65 +18,101 @@ public class Movement {
     private Player player;
     private CtmManager ctmManager;
     private WowInstance wowInstance;
+    private ObjectManager objectManager;
 
-    Movement(Player player, CtmManager ctmManager, WowInstance wowInstance) {
+    public Movement(Player player, CtmManager ctmManager, WowInstance wowInstance, ObjectManager objectManager) {
         this.player = player;
         this.ctmManager = ctmManager;
         this.wowInstance = wowInstance;
+        this.objectManager = objectManager;
     }
 
-    boolean goToNextPoint(
-        Navigation.Coordinates3D point,
-        boolean fromBase)
-    {
-        return this.goToNextPoint(new Point3D((double)point.x, (double)point.y, (double)point.z), fromBase);
-    }
-
-    private boolean goToNextPoint(Point3D nextPoint, boolean fromBase) {
+    public boolean goToNextPoint(Point3D nextPoint) {
         int count = 0;
-
-        while (!Navigation.isNear(new Navigation.Coordinates3D(this.player.getX(), this.player.getY(), this.player.getZ()), nextPoint)) {
-            if (this.player.getZone().isShatrhCity()) {
+        Zones.Zone zone = player.getZone();
+        while (!Navigation.isNear(new Navigation.Coordinates3D(player.getX(), player.getY(), player.getZ()), nextPoint)) {
+            // teleported
+            if (!player.getZone().equals(zone)) {
+                log.error("prev zone:{} != current:{}", zone, player.getZone());
                 return false;
             }
-
-            if ((this.player.isInCombat() || this.player.getHealthPercent() < 100) && !fromBase) {
+            if (player.getZone().isShatrhCity()) {
                 return false;
             }
+            if (player.isInCombat() && !mobTargetingMe()) {
+                // doesn't work for AV
+                //return false;
+            }
+            if (player.isDead()) {
+                return true;
+            }
+            double distance = player.getCoordinates().distance(nextPoint);
 
-            log.info("go to next point");
+            boolean checkDistance = true;
+            // for jump from bg
+            if (player.getZone().isEye() || player.getZone().isWarsong()) {
+                // TODO: merge logic of 2 bgs
+                if (player.getZone().isEye()) {
+                    if (player.getCoordinates().getZ() - nextPoint.getZ() > 30 && distance < 150) {
+                        checkDistance = false;
+                    }
+                }
+            }
+            if (checkDistance && distance > 300) {
+                log.info("the next point is too far away, break distance:" + distance);
+                return false;
+            }
+            //travel form
+            wowInstance.click(WinKey.D7);
             ++count;
-            log.info("count=" + count);
-            if (count == 2) {
-                this.ctmManager.stop();
-                Utils.sleep(15000L);
+            //log.info("count=" + count);
+            if (count % 3 == 0) {
+                System.out.println("can't go to the point, stop and sleep");
+                System.out.println("player: " + player.getCoordinates());
+                System.out.println("nextPoint: " + nextPoint);
+                System.out.println("distance: " + distance);
+                ctmManager.stop();
+                castMount();
+                Utils.sleep(5000L);
                 break;
             }
-
-            if (this.player.isDead()) {
-                this.ress();
+            if (player.isDead()) {
                 break;
             }
-
-            boolean success = this.ctmManager.goTo(nextPoint);
+            boolean success = ctmManager.goTo(nextPoint, false);
             if (success) {
                 return true;
             }
         }
-
-        this.ctmManager.stop();
+        ctmManager.stop();
         return true;
+    }
+
+    private void castMount() {
+        log.info("went to 1 point, try to cast mount");
+        ctmManager.stop();
+        Utils.sleep(1000L);
+        wowInstance.click(WinKey.D0);
+        Utils.sleep(3500L);
+        log.info("mount caster, go to the point");
     }
 
     public void ress() {
         log.info("try ress character");
-        if (this.player.isDeadLyingDown()) {
-            this.wowInstance.click(WinKey.D9, 0L);
-            Utils.sleep(500L);
-        } else if (this.player.isSpirit()) {
-            this.wowInstance.click(WinKey.D0, 0L);
-        }
-
+        Utils.sleep(3000);
     }
 
+    public boolean mobTargetingMe() {
+        /*
+        objectManager.refillUnits();
+        Map<Long, UnitObject> units = objectManager.getUnits();
+        for(Map.Entry<Long,UnitObject> entry : units.entrySet()) {
+            if (entry.getValue().isTargetingMe()) {
+                log.info("found mob attacking me");
+                return true;
+            }
+        }
+        */
+        return false;
+    }
 }

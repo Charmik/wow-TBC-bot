@@ -48,10 +48,10 @@ public final class CtmManager extends MemoryAware {
     private static final Address ctmMysteryAttacking = Address.STATIC.CTM_MYSTERY_ATTACKING;
     private static final Address ctmMysteryInteractUnit = Address.STATIC.CTM_MYSTERY_INTERACT_UNIT;
 
-    private static final int goToIterationCheck = 100; // ms
+    private static final int goToIterationCheck = 1; // ms
     private static final double allowedDistancePerGotoIteration = 0.05;
 
-    private static final int maxStuckWaitCounter = 50;
+    private static final int maxStuckWaitCounter = 4000;
     private static final int maxStuckInRowBeforeExit = 500;
     private static Logger log = LoggerFactory.getLogger(CtmManager.class);
     private final ThreadLocal<Integer> stuckInRowCounter = new ThreadLocal<>();
@@ -74,12 +74,11 @@ public final class CtmManager extends MemoryAware {
     }
 
     public boolean goTo(
-        WowObject object,
-        WowInstance wowInstance,
-        Point3D nextPoint,
-        int level,
-        boolean goToAsMelee)
-    {
+            WowObject object,
+            WowInstance wowInstance,
+            Point3D nextPoint,
+            int level,
+            boolean goToAsMelee) {
         int stuckCounter = 0;
         Coordinates2D initialPosition = Navigation.get2DCoordsFor(this.player);
         while (!Navigation.areNear(initialPosition, object, level, goToAsMelee)) {
@@ -95,10 +94,6 @@ public final class CtmManager extends MemoryAware {
             if (this.player.isDead()) {
                 return false;
             }
-
-            if (wowInstance != null) {
-                wowInstance.click(WinKey.D1);
-            }
             Utils.sleep(100L);
             if (this.isStuck(initialPosition, Navigation.get2DCoordsFor(this.player)) && stuckCounter++ >= 25) {
                 this.incrementAndCheckStuckCounter();
@@ -113,18 +108,14 @@ public final class CtmManager extends MemoryAware {
     }
 
     public boolean goTo(
-        WowObject object,
-        WowInstance wowInstance)
-    {
+            WowObject object,
+            WowInstance wowInstance) {
         int stuckCounter = 0;
         Coordinates2D initialPosition = get2DCoordsFor(player);
         moveTo(object);
         while (!areNear(initialPosition, object)) { // check every second
             if (player.isDead()) {
                 return false;
-            }
-            if (wowInstance != null) {
-                wowInstance.click(WinKey.D1);
             }
             moveTo(object);
             Utils.sleep(goToIterationCheck);
@@ -141,14 +132,15 @@ public final class CtmManager extends MemoryAware {
         return true;
     }
 
-    public boolean goTo(Point3D point) { // TODO [beresnev]: Use char movement state to see if he's running
+    public boolean goTo(Point3D point, boolean stopIfCombat) { // TODO [beresnev]: Use char movement state to see if he's running
         int stuckCounter = 0;
         Coordinates2D initialPosition = get2DCoordsFor(player);
         Coordinates3D initialPosition3D = get3DCoordsFor(player);
         while (!isNear(initialPosition3D, point)) { // check every second
-            if (player.isInCombat()) {
+            if (stopIfCombat && player.isInCombat()) {
                 // true, because we dont need do unstuck if we met red-mob
                 logger.info("exit from goTo because player.isInCombat()");
+                //stop();
                 return true;
             }
             if (player.isDeadLyingDown()) {
@@ -205,9 +197,8 @@ public final class CtmManager extends MemoryAware {
      * @see Navigation#evaluateDistanceFromTo(Coordinates2D, Coordinates2D)
      */
     private boolean isStuck(
-        Coordinates2D initialPosition,
-        Coordinates2D currentPosition)
-    {
+            Coordinates2D initialPosition,
+            Coordinates2D currentPosition) {
         double distanceRun = evaluateDistanceFromTo(initialPosition, currentPosition);
         return distanceRun < allowedDistancePerGotoIteration;
     }
@@ -234,18 +225,16 @@ public final class CtmManager extends MemoryAware {
     }
 
     public void moveTo(
-        double x,
-        double y,
-        double z)
-    {
+            double x,
+            double y,
+            double z) {
         moveTo((float) x, (float) y, (float) z, 0);
     }
 
     public void moveTo(
-        float x,
-        float y,
-        float z)
-    {
+            float x,
+            float y,
+            float z) {
         moveTo(x, y, z, 0);
     }
 
@@ -253,11 +242,10 @@ public final class CtmManager extends MemoryAware {
      * Sends CTM to [WALK] to the coordinates.
      */
     private void moveTo(
-        float x,
-        float y,
-        float z,
-        long guid)
-    {
+            float x,
+            float y,
+            float z,
+            long guid) {
         doAction(x, y, z, guid, ctmMysteryMoving, WALK);
     }
 
@@ -303,20 +291,18 @@ public final class CtmManager extends MemoryAware {
     }
 
     public void doAction(
-        long guid,
-        Address mysteryAction,
-        CtmAction ctmAction)
-    {
+            long guid,
+            Address mysteryAction,
+            CtmAction ctmAction) {
         Objects.requireNonNull(mysteryAction);
         Objects.requireNonNull(ctmAction);
         doAction(guid, (int) mysteryAction.getValue(), ctmAction.value);
     }
 
     public void doAction(
-        long guid,
-        int mystery,
-        int action)
-    {
+            long guid,
+            int mystery,
+            int action) {
 
         writeLong(ctmGuid, guid);
         writeInt(ctmMystery, mystery);
@@ -324,13 +310,12 @@ public final class CtmManager extends MemoryAware {
     }
 
     public void doAction(
-        float x,
-        float y,
-        float z,
-        long guid,
-        Address mysteryAction,
-        CtmAction ctmAction)
-    {
+            float x,
+            float y,
+            float z,
+            long guid,
+            Address mysteryAction,
+            CtmAction ctmAction) {
         Objects.requireNonNull(mysteryAction);
         Objects.requireNonNull(ctmAction);
 

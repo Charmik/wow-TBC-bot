@@ -11,6 +11,9 @@ import wow.memory.WowMemory;
 public final class PlayerObject extends CreatureObject {
     private static final Address OBJ_PLAYER_CASTING = Address.OFFSET.OBJ_PLAYER_ISCASTING;
     private static final Address CHAR_HEALTH = Address.OFFSET.CHAR_HEALTH;
+    private static final Address CHAR_MAXIMUM_HEALT = Address.OFFSET.CHAR_MAXIMUM_HEALTH;
+
+    private final int arr[] = new int[100];
 
     public PlayerObject(
         long baseAddress,
@@ -21,22 +24,23 @@ public final class PlayerObject extends CreatureObject {
         super(baseAddress, guid, type, wowMemory);
     }
 
+    public boolean isDead() {
+        return getHealth() == 0 || getHealth() == 1;
+    }
+
+    @Override
     public int getHealth() {
         return readIntOffset(CHAR_HEALTH);
     }
 
+    @Override
+    public int getMaximumHealth() {
+        return readIntOffset(CHAR_MAXIMUM_HEALT);
+    }
 
+    @Override
     public int needHealthForFull() {
-        Memory memory = readMemory(baseAddress, Address.OFFSET.CHAR_BLOCK);
-        int arr[] = new int[100];
-        memory.read(0, arr, 0, 7);
-        memory.clear();
-        int currentHealth = arr[0];
-        int maxHealth = arr[6];
-        if (currentHealth < 2) {
-            return -1;
-        }
-        return maxHealth - currentHealth;
+        return getMaximumHealth() - getHealth();
     }
 
     /**

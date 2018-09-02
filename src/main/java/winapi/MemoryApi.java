@@ -82,8 +82,8 @@ public final class MemoryApi {
         boolean successful;
         successful = kernel32.ReadProcessMemory(process, address, output, bytesToRead, null);
         if (!successful) {
-            log.info(String.format("%s: RPM fail on args %s, %s, %s",
-                new Date().toString(), process, address, bytesToRead));
+            //log.info(String.format("%s: RPM fail on args %s, %s, %s",
+            //    new Date().toString(), process, address, bytesToRead));
         }
         return output;
     }
@@ -128,5 +128,9 @@ public final class MemoryApi {
             log.info(String.format("%s: WPM fail on args %s, %s, %s, %s",
                 new Date().toString(), process, address, data, bytesToWrite));
         }
+    }
+
+    public static int getTickCount() {
+        return kernel32.GetTickCount();
     }
 }

@@ -14,6 +14,7 @@ import wow.components.UnitReaction;
 import wow.memory.ObjectManager;
 import wow.memory.objects.Player;
 import wow.memory.objects.UnitObject;
+import wow.navigation.Zones;
 
 /**
  * @author alexlovkov
@@ -21,7 +22,7 @@ import wow.memory.objects.UnitObject;
 public class TargetManager {
 
     private final static Logger logger = LoggerFactory.getLogger(TargetManager.class);
-    private static final int DISTANCE_FROM_MOB_TO_NEAREST_POINT_IN_GRAPH = 30;
+    private static final int DISTANCE_FROM_MOB_TO_NEAREST_POINT_IN_GRAPH = 10;
 
     private final Graph graph;
     private final Player player;
@@ -53,6 +54,8 @@ public class TargetManager {
             .filter((unit) -> !unit.getFaction().isAlliance() && !unit.getFaction().isHorde())
             .filter((unit) -> unit.getUnitReaction() != UnitReaction.FRIENDLY)
             .filter(graph::mobIsNearToTheGraph)
+            //in netherStorm some stones lvl 60 which you can attack
+            .filter(e -> !(e.getLevel() == 60 && Zones.getZone(player.getZoneId()).isNetherStorm()))
             .sorted(Comparator.comparingDouble((unit) -> Navigation.evaluateDistanceFromTo(player, unit)))
             .collect(Collectors.toList());
 
@@ -69,6 +72,7 @@ public class TargetManager {
                 }
             }
         }
+        logger.info("found mobs.size()=" + mobs.size());
         for (UnitObject unit : mobs) {
             Point3D nearestPointToMob = globalGraph.getNearestPointTo(unit).getKey();
             double distance = nearestPointToMob.distance(unit.getCoordinates());
@@ -79,7 +83,6 @@ public class TargetManager {
                 objectManager.removeUnit(unit.getGuid());
             }
         }
-        logger.info("didn't find any mobs for attacking around me");
         return null;
     }
 

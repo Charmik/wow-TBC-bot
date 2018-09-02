@@ -21,6 +21,9 @@ import wow.memory.objects.UnitObject;
 import static wow.components.Navigation.Coordinates2D;
 import static wow.components.Navigation.evaluateDistanceFromTo;
 import static wow.components.Navigation.get2DCoordsFor;
+import static wow.memory.ObjectManager.ObjectType.*;
+import static wow.memory.ObjectManager.ObjectType.ITEM;
+import static wow.memory.ObjectManager.ObjectType.OBJECT;
 import static wow.memory.ObjectManager.ObjectType.PLAYER;
 import static wow.memory.ObjectManager.ObjectType.UNIT;
 
@@ -28,15 +31,17 @@ import static wow.memory.ObjectManager.ObjectType.UNIT;
  * @author Cargeh
  */
 public final class ObjectManager extends MemoryAware {
+
+    private static Logger log = LoggerFactory.getLogger(ObjectManager.class);
+
     private static final Address FIRST_OBJECT_OFFSET = Address.OFFSET.OBJ_FIRST;
     private static final Address TYPE_OFFSET = Address.OFFSET.OBJ_BASE_TYPE;
     private static final Address GUID_OFFSET = Address.OFFSET.OBJ_BASE_GUID;
     private static final Address NEXT_OBJECT_OFFSET = Address.OFFSET.OBJ_NEXT;
-    private static Logger log = LoggerFactory.getLogger(ObjectManager.class);
+
     private final WowMemory wowMemory;
     private final Map<Long, PlayerObject> players;
     private final Map<Long, UnitObject> units;
-
 
     ObjectManager(WowMemory wowMemory) {
         super(wowMemory);
@@ -93,6 +98,11 @@ public final class ObjectManager extends MemoryAware {
 
     public final void scanForNewUnits() {
         scanForNewObjectsWithType(UNIT, units);
+    }
+
+    public final void scanForNew() {
+        scanForNewObjectsWithType(CONTAINER, units);
+
     }
 
     private <T> void scanForNewObjectsWithType(
@@ -290,6 +300,7 @@ public final class ObjectManager extends MemoryAware {
 
         private static ObjectType[] types = ObjectType.values();
 
+        // can be incorrent i
         private static ObjectType getType(int i) {
             return types[i];
         }

@@ -23,6 +23,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 public class FloydBenchmark {
 
     public static void main(String[] args) throws RunnerException {
+        /*
         Options opt = new OptionsBuilder()
             .warmupIterations(5)
             .measurementIterations(15)
@@ -31,6 +32,7 @@ public class FloydBenchmark {
             .shouldDoGC(true)
             .build();
         new Runner(opt).run();
+        */
     }
 
     /*
@@ -42,6 +44,7 @@ public class FloydBenchmark {
     }
     */
 
+    /*
     @Benchmark
     @BenchmarkMode(Mode.AverageTime)
     @OutputTimeUnit(TimeUnit.SECONDS)
@@ -51,7 +54,7 @@ public class FloydBenchmark {
 
     @State(Scope.Benchmark)
     public static class BenchmarkState {
-        GlobalGraph globalGraph = new GlobalGraph();
+        GlobalGraph globalGraph = new GlobalGraph("routes");
 
         @Setup(Level.Trial)
         public void init() {
@@ -63,4 +66,5 @@ public class FloydBenchmark {
 
         }
     }
+    */
 }

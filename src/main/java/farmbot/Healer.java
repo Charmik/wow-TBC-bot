@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import util.Utils;
 import winapi.components.WinKey;
 import wow.WowInstance;
+import wow.memory.CtmManager;
 import wow.memory.objects.Player;
 import wow.memory.objects.UnitObject;
 
@@ -16,14 +17,17 @@ public class Healer {
     private static final Logger logger = LoggerFactory.getLogger(Healer.class);
     private final Player player;
     private final WowInstance wowInstance;
+    private CtmManager ctmManager;
     private long timeLastHeal = 0L;
 
     public Healer(
         Player player,
-        WowInstance wowInstance)
+        WowInstance wowInstance,
+        CtmManager ctmManager)
     {
         this.player = player;
         this.wowInstance = wowInstance;
+        this.ctmManager = ctmManager;
     }
 
     public void heal(UnitObject target) {
@@ -39,6 +43,7 @@ public class Healer {
                     WHEN_HEAL_IN_FIGHT = 40;
                 }
                 if ((inCombat && healthPercent <= WHEN_HEAL_IN_FIGHT || !inCombat && healthPercent < 65) && manaPercent > 35 && healthPercent > 5) {
+                    ctmManager.stop();
                     logger.info(mobsTargetingMe.size() + " targeting me");
                     int targetHealth;
                     if (mobsTargetingMe.size() == 1) {
@@ -55,8 +60,6 @@ public class Healer {
                             return;
                         }
                     }
-
-
                     if (target != null && target.getComboPoints() == 5) {
                         //in player-farm you have 100 energy
                         if (player.getEnergy() != 100) {
@@ -65,55 +68,58 @@ public class Healer {
                             Utils.sleep(500L);
                         }
                     }
-
                     if (target != null && target.isDead()) {
                         return;
                     }
-
                     logger.info("healing at " + healthPercent + " % health");
                     //when you got stun and your hp didn't change - try again
-                    castRegrowth();
-                    Utils.sleep(2000);
-                    int EPSILON_HEALTH = 50;
-                    logger.info("player.getHealthPercent()={} , healthPercent={}", player.getHealthPercent(), healthPercent);
-                    if (player.isInCombat() && player.getHealthPercent() + EPSILON_HEALTH < healthPercent) {
-                        logger.info("##################### INSIDE COMBAT + player.getHealthPercent() < healthPercent");
-                        Utils.sleep(4000);
-                        if (player.getHealthPercent() + EPSILON_HEALTH < healthPercent) {
-                            castRegrowth();
-                        }
-                    }
-
-                    logger.info("casted D4");
-                    int MANA_WHEN_CAST_REJUVENATION = 40;
-                    if (player.getLevel() > 50) {
-                        MANA_WHEN_CAST_REJUVENATION = 30;
-                    }
-                    if (inCombat && manaPercent > MANA_WHEN_CAST_REJUVENATION) {
-                        logger.info("in combat and mana > 40, cast another heal D2");
-                        for (targetHealth = 0; targetHealth < 5; ++targetHealth) {
-                            Utils.sleep(100L);
-                            wowInstance.click(WinKey.D2);
-                        }
-                    }
-
-                    timeLastHeal = System.currentTimeMillis();
-                    if (manaPercent < 80) {
-                        logger.info("try cast innervate, may be on cd");
-
-                        for (targetHealth = 0; targetHealth < 10; ++targetHealth) {
-                            Utils.sleep(100L);
-                            wowInstance.click(WinKey.D5);
-                            wowInstance.click(WinKey.D3);
-                        }
-                    }
-
-                    for (targetHealth = 0; targetHealth < 20; ++targetHealth) {
-                        Utils.sleep(100L);
-                        wowInstance.click(WinKey.D3);
-                    }
+                    forceHeal(healthPercent, manaPercent, inCombat);
                 }
             }
+        }
+    }
+
+    public void forceHeal(
+        int healthPercent,
+        int manaPercent,
+        boolean inCombat)
+    {
+        int targetHealth;
+        castRegrowth();
+        Utils.sleep(200);
+        int EPSILON_HEALTH = 50;
+        logger.info("player.getHealthPercent()={} , healthPercent={}", player.getHealthPercent(), healthPercent);
+        if (player.isInCombat() && player.getHealthPercent() + EPSILON_HEALTH < healthPercent) {
+            logger.info("##################### INSIDE COMBAT + player.getHealthPercent() < healthPercent");
+            Utils.sleep(4000);
+            if (player.getHealthPercent() + EPSILON_HEALTH < healthPercent) {
+                castRegrowth();
+            }
+        }
+        logger.info("casted D4");
+        int MANA_WHEN_CAST_REJUVENATION = 40;
+        if (player.getLevel() > 50) {
+            MANA_WHEN_CAST_REJUVENATION = 30;
+        }
+        if (inCombat && manaPercent > MANA_WHEN_CAST_REJUVENATION) {
+            logger.info("in combat and mana > 40, cast another heal D2");
+            for (targetHealth = 0; targetHealth < 5; ++targetHealth) {
+                Utils.sleep(100L);
+                wowInstance.click(WinKey.D2);
+            }
+        }
+        timeLastHeal = System.currentTimeMillis();
+        if (manaPercent < 80) {
+            logger.info("try cast innervate, may be on cd");
+            for (targetHealth = 0; targetHealth < 10; ++targetHealth) {
+                Utils.sleep(100L);
+                wowInstance.click(WinKey.D5);
+                wowInstance.click(WinKey.D3);
+            }
+        }
+        for (targetHealth = 0; targetHealth < 20; ++targetHealth) {
+            Utils.sleep(100L);
+            wowInstance.click(WinKey.D3);
         }
     }
 

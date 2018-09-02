@@ -31,6 +31,12 @@ public abstract class CreatureObject extends WowObject {
         super.setDescriptorAddress(descriptorsAddress);
     }
 
+    public abstract int getHealth();
+
+    public abstract int getMaximumHealth();
+
+    public abstract int needHealthForFull();
+
     private int initializeDescriptorAddress() {
         return readIntOffset(DESCRIPTORS_OFFSET);
     }
@@ -47,7 +53,7 @@ public abstract class CreatureObject extends WowObject {
         return getTargetGuid() == memoryManager.getPlayer().getGuid();
     }
 
-    private long getTargetGuid() {
+    public long getTargetGuid() {
         return Integer.toUnsignedLong(readIntDescriptor(TARGET_DESCRIPTOR));
     }
 

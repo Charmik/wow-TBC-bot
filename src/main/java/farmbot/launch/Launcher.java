@@ -16,6 +16,6 @@ public class Launcher {
     public static void main(String[] args) throws IOException {
         logger.info(Launcher.class + " started");
         Bot bot = new Bot(args);
-        bot.run();
+        bot.run(3);
     }
 }

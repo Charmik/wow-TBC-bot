@@ -95,8 +95,8 @@ public class Graph {
             //mergeDifferentGraphs2(prevSize);
         }
         deleteDuplicateVertexes();
-        logger.debug("GRAPH SIZE=" + vertices.size());
-        logger.debug("graph=" + vertices);
+        logger.info("GRAPH SIZE=" + vertices.size());
+        logger.info("graph=" + vertices);
         int vIndex = -1;
         for (Vertex x : vertices) {
             logger.debug(x.toString());
@@ -137,7 +137,7 @@ public class Graph {
         Vertex newVertex,
         Pair<Vertex, Double> nearestPointInGraph)
     {
-        if (nearestPointInGraph.getValue() < 600) {
+        if (nearestPointInGraph.getValue() < 30) {
             String f = String.format("%-58s", "merge: newFile=" + newVertex.fileName);
             logger.info(f + nearestPointInGraph.getKey().fileName);
             newVertex.add(nearestPointInGraph.getKey());
@@ -163,7 +163,7 @@ public class Graph {
             arr[2] = vertex.coordinates.getZ();
             //[0] is the same vertex
             Vertex nearest = (Vertex) (tree.nearest(arr, 2)[1]);
-            if (vertex.coordinates.distance(nearest.coordinates) < 10.0D && !vertex.equals(nearest)) {
+            if (vertex.coordinates.distance(nearest.coordinates) < 3.0D && !vertex.equals(nearest)) {
                 int indexFirst = vertex.index;
                 int indexSecond = nearest.index;
 
@@ -346,7 +346,7 @@ public class Graph {
         Point3D finishInGraph = getNearestPointTo(finish).getKey();
         Optional<Vertex> startVertex = vertices.stream().filter((v) -> v.coordinates.equals(startInGraph)).findAny();
         Optional<Vertex> finishVertex = vertices.stream().filter((v) -> v.coordinates.equals(finishInGraph)).findAny();
-        logger.info(" start {}, finish{}", start, finish);
+        //logger.info(" start {}, finish{}", start, finish);
         if (startVertex.isPresent() && finishVertex.isPresent()) {
             return getShortestPath(startVertex.get().index, finishVertex.get().index);
         } else {
@@ -359,7 +359,7 @@ public class Graph {
         Player player,
         Point3D finish)
     {
-        logger.info("player.getCoordinates()=" + player.getCoordinates());
+        //  logger.info("player.getCoordinates()=" + player.getCoordinates());
         return getShortestPath(getNearestPointTo(player).getKey(), finish);
     }
 

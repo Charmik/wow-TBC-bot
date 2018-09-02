@@ -2,6 +2,7 @@ package auction;
 
 import java.io.File;
 
+import auction.dao.BidManager;
 import org.junit.Assert;
 import org.junit.Test;
 

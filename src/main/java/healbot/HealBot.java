@@ -1,6 +1,7 @@
 package healbot;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
 
@@ -9,11 +10,15 @@ import winapi.components.WinKey;
 import wow.WowInstance;
 import wow.components.Navigation;
 import wow.memory.ObjectManager;
+import wow.memory.objects.CreatureObject;
 import wow.memory.objects.Player;
 import wow.memory.objects.PlayerObject;
+import wow.memory.objects.UnitObject;
+import wow.memory.objects.WowObject;
+
+import static wow.components.UnitReaction.FRIENDLY;
 
 public class HealBot {
-
 
     private WowInstance wowInstance;
     private Player player;
@@ -21,171 +26,268 @@ public class HealBot {
     private long timestampLastHeal;
     private Spell lastSpell = null;
     private Map<Long, PreviousHeal> map;
+    private static final int MIN_HEALT_FOR_HEAL = 1250;
+    private TankDetector tankDetector;
+    // try to decrease time if tank lose blooms too often
+    private final int UPDATE_TIME_FOR_LIFEBLOOM = 5600;
 
     public HealBot() {
         reset();
     }
 
     public void reset() {
-        wowInstance = new WowInstance("World of Warcraft");
-        this.player = this.wowInstance.getPlayer();
-        this.objectManager = this.wowInstance.getObjectManager();
+        this.wowInstance = new WowInstance("World of Warcraft");
+        this.player = wowInstance.getPlayer();
+        this.objectManager = wowInstance.getObjectManager();
         this.timestampLastHeal = 0L;
         this.map = new HashMap<>();
+        tankDetector = new TankDetector(objectManager);
     }
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) {
         HealBot healBot = new HealBot();
         healBot.run();
     }
 
-    public boolean makeOneHeal() throws InterruptedException {
-        this.player.updatePlayer();
-        try {
-            this.objectManager.refillPlayers();
-        } catch (ArrayIndexOutOfBoundsException ignore) {
-        }
-
-        Map<Long, PlayerObject> players = this.objectManager.getPlayers();
-        PlayerObject playerWithMinimumHealth = this.getTargetForHeal(players);
-        if (playerWithMinimumHealth == null) {
+    public boolean makeOnePlayerHeal() {
+        CreatureObject playerWithMinimumHealth = getPlayerForHeal();
+        if (playerWithMinimumHealth == null
+                || playerWithMinimumHealth.needHealthForFull() < MIN_HEALT_FOR_HEAL
+                || playerWithMinimumHealth.getHealth() == 0) {
             return false;
         } else {
-            this.makeHeal(playerWithMinimumHealth);
+            if (playerWithMinimumHealth.needHealthForFull() >= MIN_HEALT_FOR_HEAL) {
+                makeHeal(playerWithMinimumHealth);
+            }
             Utils.sleep(50L);
             return true;
         }
     }
 
-    private void run() throws InterruptedException {
-        int i = 0;
+    private boolean makeOnePetHeal() {
+        System.out.println("makeOnePetHeal");
+        CreatureObject petWithMinimumHealth = getPetForHeal();
+        if (petWithMinimumHealth == null || petWithMinimumHealth.needHealthForFull() < MIN_HEALT_FOR_HEAL) {
+            return false;
+        } else {
+            if (petWithMinimumHealth.needHealthForFull() >= MIN_HEALT_FOR_HEAL) {
+                makeHeal(petWithMinimumHealth);
+            }
+            Utils.sleep(50L);
+            return true;
+        }
+    }
+
+    private void run() {
+        int notFoundPlayerToHealCount = 0;
+
+        long lastSleep = 0;
 
         while (true) {
+            //reset();
+            // for swap cc only
+
+            if (System.currentTimeMillis() > lastSleep + 18 * 1000) {
+                Utils.sleep(2100);
+                wowInstance.click(WinKey.B);
+                boolean wasCastring = false;
+                while (player.isCasting()) {
+                    wasCastring = true;
+                }
+                Utils.sleep(2000);
+                if (player.isInCombat()) {
+                    wowInstance.click(WinKey.D2);
+                }
+                lastSleep = System.currentTimeMillis();
+                Utils.sleep(2000);
+                System.out.println("trying CC focus target, wasCasting:" + wasCastring);
+            }
+
+            //AND EVERYONE in raid is not in combat -> regen mana.
+            if (!player.isInCombat() && player.getManaPercent() < 20) {
+                continue;
+            }
             try {
-                makeOneHeal();
-                ++i;
+
+                if (!makeOnePlayerHeal()) {
+                    notFoundPlayerToHealCount++;
+                    PlayerObject tank = tankDetector.guessTank();
+                    if (tank != null) {
+                        PreviousHeal previousHeal = map.get(tank.getGuid());
+                        if (previousHeal == null) {
+                            makeHeal(tank, Spell.LIFEBLOOM);
+                            continue;
+                        }
+                        UpdateSkill updateSkill = previousHeal.needUpdateLifebloom(tank.needHealthForFull());
+                        if (updateSkill.needUpdateLifebloom) {
+                            makeHeal(tank, Spell.LIFEBLOOM);
+                        } else if (updateSkill.needUpdateRejuvenation) {
+                            makeHeal(tank, Spell.REJUVENATION);
+                        }
+                    }
+                } else {
+                    notFoundPlayerToHealCount = 0;
+                }
+                if (notFoundPlayerToHealCount == 25) {
+                    System.out.println("dont have players for healing, check pets " + System.currentTimeMillis());
+                    makeOnePetHeal();
+                    notFoundPlayerToHealCount = 0;
+                }
+                /*
+                if (!player.isInCombat()) {
+                    int MANA_PERCENT_WHEN_DRINK = 80;
+                    if (player.getManaPercent() < MANA_PERCENT_WHEN_DRINK) {
+                        wowInstance.click(WinKey.D6);
+                        while (!player.isInCombat() && player.getManaPercent() < 99) {
+                            Utils.sleep(1000);
+                        }
+                    }
+                }
+                */
             } catch (Throwable e) {
-                reset();
+                //reset();
             }
         }
     }
 
-    private PlayerObject getTargetForHeal(Map<Long, PlayerObject> players) {
+    private PlayerObject getPlayerForHeal() {
+        player.updatePlayer();
+        try {
+            objectManager.refillPlayers();
+        } catch (ArrayIndexOutOfBoundsException ignore) {
+        }
         PlayerObject playerWithMinimumHealth = null;
-        while (playerWithMinimumHealth == null || playerWithMinimumHealth.needHealthForFull() < 2 || playerWithMinimumHealth.needHealthForFull() > 30000) {
-            for (Map.Entry<Long, PlayerObject> entry : players.entrySet()) {
-                PlayerObject currentPlayer = entry.getValue();
-                if (currentPlayer.getFaction().isAlliance() && !isTooFarAway(currentPlayer)) {
-                    int needHealthForFull = entry.getValue().needHealthForFull();
-                    if (playerWithMinimumHealth == null || needHealthForFull > playerWithMinimumHealth.needHealthForFull()) {
-                        playerWithMinimumHealth = currentPlayer;
-                    }
+        Map<Long, PlayerObject> players = objectManager.getPlayers();
+        for (Map.Entry<Long, PlayerObject> entry : players.entrySet()) {
+            PlayerObject currentPlayer = entry.getValue();
+            if (currentPlayer.getFaction().isAlliance() && !isTooFarAway(currentPlayer) && !currentPlayer.isDead()) {
+                int needHealthForFull = entry.getValue().needHealthForFull();
+                if (playerWithMinimumHealth == null || needHealthForFull > playerWithMinimumHealth.needHealthForFull()) {
+                    playerWithMinimumHealth = currentPlayer;
                 }
             }
         }
         return playerWithMinimumHealth;
+    }
 
-        /*
-        PlayerObject playerWithMinimumHealth = null;
-        Iterator var3 = players.entrySet().iterator();
-
-        while (true) {
-            PlayerObject victim;
-            int needHealthForFull;
-            do {
-                do {
-                    do {
-                        if (!var3.hasNext()) {
-                            return playerWithMinimumHealth;
-                        }
-                        Map.Entry entry = (Map.Entry) var3.next();
-                        victim = (PlayerObject) entry.getValue();
-                        needHealthForFull = victim.needHealthForFull();
-                    } while (needHealthForFull < 2);
-                } while (needHealthForFull > 30000);
-            }
-            while (playerWithMinimumHealth != null && playerWithMinimumHealth.needHealthForFull() >= needHealthForFull);
-
-            playerWithMinimumHealth = victim;
+    private UnitObject getPetForHeal() {
+        try {
+            objectManager.refillUnits();
+        } catch (ArrayIndexOutOfBoundsException ignore) {
         }
-        */
-    }
-
-    private boolean isTooFarAway(PlayerObject victim) {
-        double v = Navigation.evaluateDistanceFromTo(this.player, victim);
-        return v > 1000.0D;
-    }
-
-    private void makeHeal(PlayerObject playerWithMinimumHealth) throws InterruptedException {
-        int needHealthForFull = playerWithMinimumHealth.needHealthForFull();
-        if (needHealthForFull >= 1250) {
-            player.target(playerWithMinimumHealth);
-            PreviousHeal previousHeal = this.map.computeIfAbsent(playerWithMinimumHealth.getGuid(), (k) -> new PreviousHeal());
-            Spell spell = previousHeal.getSpell(needHealthForFull);
-            long time = 1510L;
-            if (lastSpell == Spell.REGROWTH) {
-                time = 2010L;
+        UnitObject petWithMinimumHealth = null;
+        Map<Long, UnitObject> units = objectManager.getUnits();
+        for (Map.Entry<Long, UnitObject> entry : units.entrySet()) {
+            UnitObject currentMob = entry.getValue();
+            if (currentMob.getUnitReaction() != FRIENDLY) {
+                continue;
             }
+            if (!isTooFarAway(currentMob)) {
+                int needHealthForFull = currentMob.needHealthForFull();
+                if (petWithMinimumHealth == null || needHealthForFull > petWithMinimumHealth.needHealthForFull()) {
+                    petWithMinimumHealth = currentMob;
+                }
+            }
+        }
+        return petWithMinimumHealth;
+    }
 
-            if (System.currentTimeMillis() - timestampLastHeal >= time) {
-                if (spell != Spell.NONE) {
-                    if (spell != Spell.SWIFTMEND) {
-                        previousHeal.list.add(new Cast(spell, System.currentTimeMillis()));
-                    }
+    private boolean isTooFarAway(WowObject victim) {
+        double v = Navigation.evaluateDistanceFromTo(player, victim);
+        return v > 1500.0D;
+    }
 
-                    if (spell == Spell.LIFEBLOOM) {
-                        this.wowInstance.click(WinKey.D1);
-                    } else if (spell == Spell.REJUVENATION) {
-                        this.wowInstance.click(WinKey.D4);
-                    } else if (spell == Spell.REGROWTH) {
-                        this.wowInstance.click(WinKey.D3);
-                    } else if (spell == Spell.SWIFTMEND) {
-                        this.wowInstance.click(WinKey.D2);
-                        for (Cast cast : previousHeal.list) {
-                            if (cast.spell == Spell.REJUVENATION) {
-                                // if for last 12 secs were rej -> delete it from list, if not, then delete regrowth.
-                                // because swiftmend always remove rej->reg
-                                //previousHeal.list.remove(cast);
+    private void makeHeal(CreatureObject playerWithMinimumHealth) {
+        makeHeal(playerWithMinimumHealth, null);
+    }
+
+    private void makeHeal(CreatureObject playerWithMinimumHealth, Spell spell) {
+        int needHealthForFull = playerWithMinimumHealth.needHealthForFull();
+        player.target(playerWithMinimumHealth);
+        PreviousHeal previousHeal = map.computeIfAbsent(playerWithMinimumHealth.getGuid(), (k) -> new PreviousHeal());
+        if (spell == null) {
+            spell = previousHeal.getSpell(needHealthForFull);
+        }
+        long time = 1510L;
+        if (lastSpell == Spell.REGROWTH) {
+            time = 2010L;
+        }
+
+        if (System.currentTimeMillis() - timestampLastHeal >= time) {
+            if (spell != Spell.NONE) {
+                if (spell != Spell.SWIFTMEND) {
+                    previousHeal.list.add(new Cast(spell, System.currentTimeMillis()));
+                }
+                if (spell == Spell.LIFEBLOOM) {
+                    System.out.println("cast lifebloom");
+                    wowInstance.click(WinKey.D1);
+                } else if (spell == Spell.REJUVENATION) {
+                    wowInstance.click(WinKey.D4);
+                } else if (spell == Spell.REGROWTH) {
+                    wowInstance.click(WinKey.D3);
+                } else if (spell == Spell.SWIFTMEND) {
+                    wowInstance.click(WinKey.T);
+                    boolean wasRejuvenation = false;
+                    for (Iterator<Cast> iterator = previousHeal.list.iterator(); iterator.hasNext(); ) {
+                        Cast cast = iterator.next();
+                        if (cast.spell == Spell.REJUVENATION) {
+                            if (System.currentTimeMillis() - cast.timeCast < 12000) {
+                                wasRejuvenation = true;
                             }
+                            iterator.remove();
                         }
                     }
+                    if (!wasRejuvenation) {
+                        previousHeal.list.removeIf(cast -> cast.spell == Spell.REGROWTH);
+                    }
 
-                    this.timestampLastHeal = System.currentTimeMillis();
-                    lastSpell = spell;
+                    for (Cast cast : previousHeal.list) {
+                        if (cast.spell == Spell.REJUVENATION) {
+                            // if for last 12 secs were rej -> delete it from list, if not, then delete regrowth.
+                            // because swiftmend always remove rej->reg
+                            //previousHeal.list.remove(cast);
+                        }
+                    }
                 }
-                //Thread.sleep(800);
+
+                timestampLastHeal = System.currentTimeMillis();
+                lastSpell = spell;
             }
-            while (previousHeal.list.size() > 10) {
-                previousHeal.list.removeFirst();
-            }
+            //Thread.sleep(800);
+        }
+        while (previousHeal.list.size() > 10) {
+            previousHeal.list.removeFirst();
         }
     }
 
     enum Spell {
         REJUVENATION, REGROWTH, LIFEBLOOM, SWIFTMEND, NONE
-
     }
 
     class PreviousHeal {
-
         public LinkedList<Cast> list;
 
         public PreviousHeal() {
-            this.list = new LinkedList<>();
+            list = new LinkedList<>();
         }
 
         public Spell getSpell(int needHealthForFull) {
             if (list.isEmpty()) {
-                if (needHealthForFull < 1500) {
-                    System.out.println("return LIFEBLOOM because list is empty for this player");
+                if (needHealthForFull < 3000) {
                     return Spell.LIFEBLOOM;
-                } else if (needHealthForFull < 4000) {
-                    System.out.println("return REJUVENATION because list is empty for this player");
-                    return Spell.REJUVENATION;
-                } else {
-                    System.out.println("return REGROWTH because list is empty for this player");
-                    return Spell.REGROWTH;
                 }
+                return Spell.REGROWTH;
+            }
+            UpdateSkill updateSkill = needUpdateLifebloom(needHealthForFull);
+            return updateSkill.spell;
+        }
+
+        private UpdateSkill needUpdateLifebloom(int needHealthForFull) {
+            UpdateSkill updateSkill = new UpdateSkill();
+            // if we are OOM - cast bloom
+            if (player.getManaPercent() <= 3) {
+                updateSkill.needUpdateLifebloom = true;
+                updateSkill.updateSpellIfNotNull(Spell.LIFEBLOOM);
             }
             long lastTimeLifebloom = -1;
             long lastTimeRejuvenation = -1;
@@ -215,24 +317,34 @@ public class HealBot {
                 regrowthDifference = -1;
             }
 
-            //didn't use lifebloom, or it will over soon, need update.
-            if (lifebloomDifference == -1 || lifebloomDifference > 4500) {
-                System.out.println("return LIFEBLOOM lifebloomDifference:" + lifebloomDifference);
-                return Spell.LIFEBLOOM;
+            if (lifebloomDifference == -1 || lifebloomDifference > UPDATE_TIME_FOR_LIFEBLOOM) {
+                updateSkill.needUpdateLifebloom = true;
+                updateSkill.updateSpellIfNotNull(Spell.LIFEBLOOM);
             }
-            if (regrowthDifference == -1 && needHealthForFull > 3000) {
-                return Spell.REGROWTH;
+            if (regrowthDifference == -1 && needHealthForFull > 2000) {
+                updateSkill.needUpdateRegrowth = true;
+                updateSkill.updateSpellIfNotNull(Spell.REGROWTH);
             }
-            if (rejuvenationDifference == -1 || rejuvenationDifference > 12000) {
-                return Spell.REJUVENATION;
+            if (rejuvenationDifference == -1 || rejuvenationDifference > 14000) {
+                updateSkill.needUpdateRejuvenation = true;
+                updateSkill.updateSpellIfNotNull(Spell.REJUVENATION);
             }
-            if (needHealthForFull > 8000 && regrowthDifference > 10000) {
-                return Spell.REGROWTH;
-            } else if (needHealthForFull > 6000) {
-                return Spell.SWIFTMEND;
+            if (needHealthForFull > 8000 && regrowthDifference > 21000) {
+                updateSkill.needUpdateRegrowth = true;
+                updateSkill.updateSpellIfNotNull(Spell.REGROWTH);
+            } else if (needHealthForFull > 10000) {
+                updateSkill.needSwift = true;
+                updateSkill.updateSpellIfNotNull(Spell.SWIFTMEND);
             }
-            return null;
+            return updateSkill;
         }
+    }
+
+    private boolean regenMana() {
+        objectManager.refillPlayers();
+        Map<Long, PlayerObject> players = objectManager.getPlayers();
+        // TODO method is combat for PlayerObject
+        return false;
     }
 
     private class Cast {
@@ -240,11 +352,24 @@ public class HealBot {
         private final long timeCast;
 
         public Cast(
-            Spell spell,
-            long timeCast)
-        {
+                Spell spell,
+                long timeCast) {
             this.spell = spell;
             this.timeCast = timeCast;
+        }
+    }
+
+    private class UpdateSkill {
+        boolean needUpdateLifebloom;
+        boolean needUpdateRejuvenation;
+        boolean needUpdateRegrowth;
+        boolean needSwift;
+        Spell spell;
+
+        void updateSpellIfNotNull(Spell spell) {
+            if (this.spell == null) {
+                this.spell = spell;
+            }
         }
     }
 }

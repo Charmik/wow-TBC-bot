@@ -51,7 +51,10 @@ public interface Address {
         CTM_MYSTERY_INTERACT_OBJECT(0x4090, 4),
 
         /* ------- AUCTION ------- */
-        AUCTION_POINTER_TO_ITEMS(0x00CE0CC8, 4);
+        AUCTION_POINTER_TO_ITEMS(0x00CE0CC8, 4),
+
+        // USE ONLY you wrote /charm ID_BAG ID_ITEM_IN_BAG in chat by addon
+        ITEM_ID_IN_BAG_BY_BAG_ID_AND_SLOT(0x00CF4231,10);
 
         private final long address;
         private final int bytes;
@@ -87,11 +90,12 @@ public interface Address {
 
         /* ------- CHARACTER  ------- */
         CHAR_BLOCK(0x2698, 320),
-        CHAR_HEALTH(0x2698, 4), // TODO [beresnev]: These are most likely descriptors
-        CHAR_HEALTH_HEALT_BLOCK(0x2698, 40),
+        CHAR_HEALTH(0x2698, 4),
+
+        CHAR_HEALTH_HEALTH_BLOCK(0x2698, 40),
         CHAR_MANA(0x269C, 4),
         CHAR_RAGE(0x26A0, 4),
-        CHAR_MAXIMUM_HEALT(0x26B0, 4),
+        CHAR_MAXIMUM_HEALTH(0x26B0, 4),
         CHAR_MAXIMUM_MANA(0x26B4, 4),
         CHAR_ENERGY(0x26A8, 4),
         CHAR_CASTING_SPELL_ID(0xF40, 4),
@@ -117,7 +121,8 @@ public interface Address {
         OBJ_PLAYER_ISCASTING(0xf3c, 4),
 
         /* ------- AUCTION ------- */
-        AUCTION_ITEM_INFORMATION(0x00, 144);
+        AUCTION_ITEM_INFORMATION(0x00, 144),
+        AUCTION_ITEM_INFORMATION_PAGE(0x00, 7200);
 
         private final long address;
         private final int bytes;
@@ -154,9 +159,10 @@ public interface Address {
 
         CHAR_COMBAT_STATE(0xA2, 1),
 
-        OBJ(0x28, 320),
+        OBJ_BLOCK(0x28, 320),
         OBJ_TARGET(0x28, 4),
         OBJ_UNIT_HP(0x40, 4),
+        OBJ_MAX_UNIT_HP(0x58, 4),
         OBJ_UNIT_MANA(0x44, 4),
         OBJ_UNIT_FACTION(0x74, 4),
         OBJ_UNIT_LEVEL(0x70, 4);

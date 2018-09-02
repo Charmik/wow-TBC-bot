@@ -649,7 +649,14 @@ public enum Faction {
     }
 
     public boolean isAlliance() {
-        return this.id == 1 || this.id == 3 || this.id == 4 || this.id == 1629;
+        return this.id == 1 || this.id == 3 || this.id == 4 || this.id == 115 || this.id == 1629;
+    }
+
+    public String getFactionName() {
+        if (isHorde()) {
+            return "horde";
+        }
+        return "alliance";
     }
 
     public String toString() {

@@ -1,24 +1,17 @@
 package auction;
 
-import java.io.FileNotFoundException;
+import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Random;
-import java.util.stream.Collectors;
+import java.text.ParseException;
 
+import auction.analyzer.Analyzer;
+import auction.dao.FilesManager;
 import farmbot.Bot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import winapi.components.WinKey;
+import telegram.TelegramBot;
+import util.LoggerConfiguration;
+import util.Utils;
 import wow.WowInstance;
 import wow.memory.objects.AuctionManager;
 import wow.memory.objects.Player;
@@ -26,132 +19,143 @@ import wow.memory.objects.Player;
 public class AuctionBot {
 
     private static final Logger logger = LoggerFactory.getLogger(Bot.class);
-    private static final int MAX_PAGES = 1000;
-    private static final int SLEEP1 = 1350;
-    private static final int SLEEP2 = 200;
-    private static final Random random = new Random();
-    private static final String FILE_NAME = "auc_" + random.nextInt(99) + ".txt";
 
     private static final WowInstance wowInstance = new WowInstance("World of Warcraft");
-    public final AuctionManager auctionManager;
     private final Player player;
+    private final Buyer buyer;
+    private final Seller seller;
+    private final Analyzer analyzer;
+    private final TelegramBot telegramBot;
+    private final AuctionMovement auctionMovement;
+    private final Mailbox mailbox;
 
-    private AuctionBot() {
-        this.auctionManager = wowInstance.getAuctionManager();
+    private long lastTelegramMessage = 0;
+
+    private AuctionBot(boolean scanOnlyFirstPage) throws IOException {
         player = wowInstance.getPlayer();
-    }
-
-    public static void main(String[] args) throws IOException, InterruptedException {
-        AuctionBot auctionBot = new AuctionBot();
-        auctionBot.saveDataToFile();
-//        printCurrentPage(auctionBot);
-//        sortAuctionId(auctionBot, "auc_3000_3000_12.txt");
-    }
-
-    private static void sortAuctionId(AuctionBot auctionBot, String fileName) throws IOException {
-        List<Item> items = auctionBot.readFromFile(fileName);
-        HashSet<Item> set = new HashSet<>(items);
-        System.out.println(items.size() + " " + set.size());
-        Collections.sort(items);
-
-        List<Integer> ints = items.stream().map(Item::getAuctionId).sorted().collect(Collectors.toList());
-        for (Integer x : ints) {
-            System.out.println(x);
+        String faction;
+        if (player.getFaction().isHorde()) {
+            faction = "horde";
+        } else {
+            faction = "alliance";
         }
+        logger.info("faction: " + faction);
+        new LoggerConfiguration().configure(faction);
+        String folder = "history_auction" + File.separator + faction;
+        PriceLogger priceLogger = new PriceLogger(folder + File.separator + "logPrices.txt");
+
+        FilesManager filesManager = new FilesManager(folder);
+        analyzer = new Analyzer(wowInstance, folder, priceLogger, filesManager);
+        analyzer.calculate();
+        buyer = new Buyer(scanOnlyFirstPage, folder, analyzer, filesManager);
+        AuctionManager auctionManager = wowInstance.getAuctionManager();
+        seller = new Seller(auctionManager, wowInstance, priceLogger, analyzer);
+        if (player.getFaction().isHorde()) {
+            telegramBot = new TelegramBot();
+        } else {
+            telegramBot = null;
+        }
+        auctionMovement = new AuctionMovement(wowInstance);
+        mailbox = new Mailbox(wowInstance);
     }
 
-    private static void printCurrentPage(AuctionBot auctionBot) {
-        Item[] itemsFromCurrentPage = auctionBot.auctionManager.getItemsFromCurrentPage();
-        for (Item item : itemsFromCurrentPage) {
-            System.out.println(item);
+    public static void main(String[] args) throws IOException, ParseException, InterruptedException {
+        boolean scanOnlyFirstPage = false;
+        if (args.length > 0) {
+            logger.info("going to scan only first page");
+            scanOnlyFirstPage = true;
         }
-    }
-
-    private List<Item> readFromFile(String file) throws IOException {
-        List<Item> list = new ArrayList<>();
-        List<String> strings = Files.readAllLines(Paths.get(file));
-        for (String s : strings) {
-            Object[] arr = Arrays.stream(s.split(" ")).map(Integer::valueOf).toArray();
-            list.add(new Item((Integer) arr[0], (Integer) arr[1], (Integer) arr[2], (Integer) arr[3], (Integer) arr[4], (Integer) arr[5], (Integer) arr[6], (Integer) arr[7]));
+        AuctionBot auctionBot = new AuctionBot(scanOnlyFirstPage);
+        if (scanOnlyFirstPage) {
+            auctionBot.runBuyer();
         }
-        return list;
-    }
-
-    private void saveDataToFile() throws FileNotFoundException, UnsupportedEncodingException, InterruptedException {
-        logger.info("FILE_NAME=" + FILE_NAME + " isAlliance? - " + player.getFaction().isAlliance());
-        List<Item> items = getAllItemsFromAuc();
-        int oldSize = items.size();
-        //but of the wow, sometimes you see the same items by scanning, so delete the equals by auctionId
-        if (items.size() < 10000) {
-            logger.info("items size only: " + items.size() + " dont save it");
-            return;
-        }
-        items = new ArrayList<>(new HashSet<>(items));
-        String msg = "oldSize:" + oldSize + " setSize:" + items.size() + "  " + ((double) items.size() / (double) oldSize);
-        logger.info(msg);
-
-        PrintWriter writer = new PrintWriter(FILE_NAME, "UTF-8");
-        writer.println(new Date());
-        writer.println(msg);
-        for (Item item : items) {
-            //logger.info(item.toString());
-            writer.println(item);
-        }
-        logger.info("closing file:" + FILE_NAME);
-        writer.close();
-    }
-
-    private List<Item> getAllItemsFromAuc() throws InterruptedException {
-        List<Item> items = new ArrayList<>();
-        Item[] itemsFromCurrentPage = null;
-        List<Integer> readFromMemoryCounts = new ArrayList<>();
-        long startTime = System.currentTimeMillis();
-
-        int countForceScanning = 0;
-        boolean foundLastPage = false;
-        for (int page = 1; page <= MAX_PAGES; page++) {
-            //logger.info("page=" + page);
-            int lastExpiredTime = -1;
-            if (itemsFromCurrentPage != null) {
-                lastExpiredTime = itemsFromCurrentPage[0].getExpireTime();
-            }
-            int countGetPreviousPage = 1;
-            do {
-                itemsFromCurrentPage = auctionManager.getItemsFromCurrentPage();
-                countGetPreviousPage++;
-                //try to force nextPage again, we will miss this page, doesn't matter, bug wow.
-                if (countGetPreviousPage % 3000 == 0) {
-                    logger.info("can't read memory too long, try force next page");
-                    clickNextPage();
-                    countForceScanning++;
+//        wowInstance.getObjectManager().scanForNew();
+/*
+        for (;;) {
+            wowInstance.getObjectManager().scanForNewUnits();
+            Map<Long, UnitObject> units = wowInstance.getObjectManager().getUnits();
+            units.entrySet().forEach(e -> {
+                Point3D coordinates = e.getValue().getCoordinates();
+                Player player = wowInstance.getPlayer();
+                double distance = player.getCoordinates().distance(coordinates);
+                if (distance < 10) {
+                    System.out.println(distance + " " + e.getValue().getLevel());
                 }
-                //found lastPage
-                if (countGetPreviousPage == 9000) {
-                    logger.info("can't read memory too long, it should be last page, exit");
-                    foundLastPage = true;
-                    break;
-                }
-            } while (itemsFromCurrentPage[0].getExpireTime() == lastExpiredTime);
-            if (foundLastPage) {
-                break;
-            }
-            Collections.addAll(items, itemsFromCurrentPage);
-            readFromMemoryCounts.add(countGetPreviousPage);
-            Thread.sleep(SLEEP1);
-            clickNextPage();
-            Thread.sleep(SLEEP2);
+            });
+            System.out.println("!!!!!!!!!!!!!!!!!");
+            System.out.println("!!!!!!!!!!!!!!!!!");
         }
-        logger.info("countForceScanning=" + countForceScanning);
-        logger.info(readFromMemoryCounts.toString());
-        logger.info("scanningTime:" + (System.currentTimeMillis() - startTime) / 1000);
-        return items;
+        */
+        auctionBot.runBuyerWithSelling();
     }
 
-    private void clickPrevPage() {
-        wowInstance.click(WinKey.D3);
+    private void runBuyer() throws InterruptedException, ParseException, IOException {
+        boolean success = buyer.analyze();
+        if (!success) {
+//            telegramBot.sendMessageToShumik("your bot is dead, check it");
+            Runtime.getRuntime().exit(0);
+        }
     }
 
-    private void clickNextPage() {
-        wowInstance.click(WinKey.D4);
+    private void runBuyerWithSelling() throws InterruptedException, ParseException, IOException {
+        /*
+        for (;;) {
+            auctionMovement.goToMail();
+            mailbox.getMail();
+            auctionMovement.goToAuction();
+            buyer.resetAuction();
+        }
+        */
+
+        long now = System.currentTimeMillis();
+        if (now - lastTelegramMessage > 1000 * 60 * 30) {
+            if (telegramBot != null) {
+                telegramBot.sendMessageToCharm("run bot for faction: " + player.getFaction().getFactionName());
+            }
+            lastTelegramMessage = now;
+        }
+        for (; ; ) {
+            try {
+//            auctionMovement.goToMail();
+//            mailbox.getMail();
+//            auctionMovement.goToAuction();
+                int failed = 0;
+                int n = 100;
+
+                boolean wasSelling = false;
+                for (int i = 0; i < n; i++) {
+                    boolean successAnalyze = buyer.analyze();
+                    if (successAnalyze && !wasSelling) {
+                        logger.info("calculate auction & sell items");
+                        analyzer.calculate();
+                        sellWithRetries(2);
+                        wasSelling = true;
+                    } else {
+                        failed++;
+                        logger.error("bot failed to analyze auction at iteration:{}", i);
+                    }
+                }
+                if (failed == n) {
+
+                    if (telegramBot != null) {
+                        telegramBot.sendMessageToCharm("bot didn't find auction " + failed + " times, " +
+                                "faction:" + player.getFaction().getFactionName() + " check it");
+                    }
+                    //buyer.resetAuction();
+                    buyer.resetOnFirstPage();
+                    int sleepTime = 1000 * 60 * 5;
+                    logger.info("sleep:{}, because we failed:{} times to analyze full auction", sleepTime, failed);
+                    Utils.sleep(sleepTime);
+                }
+            } catch (Exception e) {
+                logger.error("got exception:", e);
+            }
+        }
+    }
+
+    private void sellWithRetries(int retries) {
+        for (int i = 0; i < retries; i++) {
+            seller.sellAllItemsFromBag();
+        }
     }
 }

@@ -18,11 +18,11 @@ public class Navigation {
     private static Logger log = LoggerFactory.getLogger(Navigation.class);
 
     private static float NEAR_COORDS_DIFFERENCE = 2.0f;
-    private static float NEAR_COORDS_DIFFERENCE_MOB = 4.0f;
+    private static float NEAR_COORDS_DIFFERENCE_MOB = 8.0f;
     private static float NEAR_COORDS_DIFFERENCE_MOB_WITF_FF = 16.0f;
     private static float NEAR_COORDS_DIFFERENCE_AS_CASTER = 900;
     private static float IS_MOB_NEAR = 40.0f;
-    private static float IS_NEAR_TO_POINT = 2.0f;
+    private static float IS_NEAR_TO_POINT = 4f;
 
     /**
      * Converts WoW General Map Memory coordinates to local zone coordinates
@@ -143,9 +143,12 @@ public class Navigation {
         Coordinates3D player,
         Point3D point)
     {
-        return Math.abs(player.x - point.getX()) <= IS_NEAR_TO_POINT
-            && Math.abs(player.y - point.getY()) <= IS_NEAR_TO_POINT
-            && Math.abs(player.z - point.getZ()) <= IS_NEAR_TO_POINT;
+        double x = Math.abs(player.x - point.getX());
+        double y = Math.abs(player.y - point.getY());
+        double z = Math.abs(player.z - point.getZ());
+        return x <= IS_NEAR_TO_POINT
+            && y <= IS_NEAR_TO_POINT
+            && z <= IS_NEAR_TO_POINT;
     }
 
     public static float getCoordsXDifference(

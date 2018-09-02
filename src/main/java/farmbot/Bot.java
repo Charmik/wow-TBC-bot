@@ -17,7 +17,6 @@ import javafx.geometry.Point3D;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.Utils;
-import winapi.components.WinKey;
 import wow.WowInstance;
 import wow.components.Navigation;
 import wow.memory.CtmManager;
@@ -50,9 +49,9 @@ public class Bot {
         this.objectManager = wowInstance.getObjectManager();
         logger.info(Arrays.toString(args));
         this.args = args;
-        this.healer = new Healer(player, wowInstance);
+        this.healer = new Healer(player, wowInstance, ctmManager);
         this.graph = new Graph();
-        globalGraph = new GlobalGraph();
+        globalGraph = new GlobalGraph("routes");
         globalGraph.buildGlobalGraph();
         this.targetManager = new TargetManager(graph, player, objectManager, globalGraph);
         this.fighter = new Fighter(player, ctmManager, wowInstance, healer, graph, targetManager, objectManager);
@@ -69,9 +68,9 @@ public class Bot {
         return killGrayMobs;
     }
 
-    public void run() throws IOException {
+    public void run(int hours) throws IOException {
 
-        new Thread(new CloseHandler(stopperBot)).start();
+        new Thread(new CloseHandler(stopperBot, hours)).start();
 
         long prevBuff = System.currentTimeMillis();
         // make 0 if you want go to sell items at start
@@ -103,7 +102,7 @@ public class Bot {
             if (!tryFindNearestMobToKill()) {
                 countDidntFindMob++;
             }
-            if (countDidntFindMob == 500) {
+            if (countDidntFindMob == 1000) {
                 objectManager.refillUnits();
                 if (!tryFindNearestMobToKill()) {
                     goToRandomPoint();
@@ -198,7 +197,7 @@ public class Bot {
             && farmList.getNextFarmList().getLowLevel() <= player.getLevel()) {
             String fileNameToNextFarmPoint = farmList.getCurrentFileName() + "_" + farmList.getNextFarmList().getCurrentFileName();
             logger.info("fileNameToNextFarmPoint=" + fileNameToNextFarmPoint);
-            Path pathToNextFarmPoint = BotPath.getPathFromFile(fileNameToNextFarmPoint);
+            Path pathToNextFarmPoint = BotPath.getPathFromFile("routes",fileNameToNextFarmPoint);
             makeCircle(pathToNextFarmPoint);
             farmList = farmList.getNextFarmList();
             updateGraph(farmList);
@@ -217,7 +216,7 @@ public class Bot {
     private void updateGraph(FarmList farmList) {
         logger.info("start update Graph");
         graph.clear();
-        graph.buildGraph(BotPath.getPathFromFile(farmList.getCurrentFileName()));
+        graph.buildGraph(BotPath.getPathFromFile("routes",farmList.getCurrentFileName()));
         graph.floyd();
         logger.info("finished update Graph");
     }
@@ -262,7 +261,7 @@ public class Bot {
         int refillCount = -1;
         for (Point3D nextPoint : path.getPoints()) {
             if (random.nextInt(8) == 0) {
-                wowInstance.click(WinKey.D3);
+                //wowInstance.click(WinKey.D3);
             }
             ++refillCount;
             if (refillCount % 10 == 0) {

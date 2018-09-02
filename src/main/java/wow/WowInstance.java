@@ -24,6 +24,8 @@ public final class WowInstance {
     private final HWND hwnd;
     private final WowMemory wowMemory;
 
+    public int millisForSleeping = 50;
+
     public WowInstance(String windowName) {
         hwnd = Win32api.getProcessHwnd(windowName);
         int processId = Win32api.getProcessId(hwnd);
@@ -49,7 +51,7 @@ public final class WowInstance {
 
     public void click(WinKey key) {
         keyDown(key);
-        Utils.sleep(50);
+        Utils.sleep(millisForSleeping);
         keyUp(key);
     }
 
@@ -84,5 +86,9 @@ public final class WowInstance {
 
     public void keyUp(int key) {
         Win32api.keyUp(hwnd, key);
+    }
+
+    public void setMillisForSleeping(int millisForSleeping) {
+        this.millisForSleeping = millisForSleeping;
     }
 }

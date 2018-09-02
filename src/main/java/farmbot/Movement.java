@@ -63,7 +63,7 @@ class Movement {
                 logger.info("break from loop in movement, because we released a spirit");
                 return true;
             }
-            boolean success = ctmManager.goTo(nextPoint);
+            boolean success = ctmManager.goTo(nextPoint, true);
             if (!success && count % 2 == 0) {
                 logger.error("can't reach next point=" + nextPoint);
                 tryUnstuck();
@@ -120,7 +120,9 @@ class Movement {
         //logger.info("try ress()");
         if (player.isDeadLyingDown()) {
             logger.info("player isDeadLyingDown");
-            corpseCoordinate = player.getCoordinates();
+            if (corpseCoordinate == null) {
+                corpseCoordinate = player.getCoordinates();
+            }
             Utils.sleep(100L);
             wowInstance.click(WinKey.D9, 0L);
             Utils.sleep(500L);

@@ -61,7 +61,7 @@ public final class Player extends MemoryAware {
         CURSOR_STATE = STATIC.CURSOR_STATE;
         CHAR_HEALTH_OFFSET = OFFSET.CHAR_HEALTH;
         CHAR_MANA_OFFSET = OFFSET.CHAR_MANA;
-        CHAR_MAXIMUM_HEALTH_OFFSET = OFFSET.CHAR_MAXIMUM_HEALT;
+        CHAR_MAXIMUM_HEALTH_OFFSET = OFFSET.CHAR_MAXIMUM_HEALTH;
         CHAR_MAXIMUM_MANA_OFFSET = OFFSET.CHAR_MAXIMUM_MANA;
         CHAR_ENERGY_OFFSET = OFFSET.CHAR_ENERGY;
         CHAR_RAGE_OFFSET = OFFSET.CHAR_RAGE;
@@ -132,6 +132,12 @@ public final class Player extends MemoryAware {
 
     public Zone getZone() {
         return Zones.getZone(getZoneId());
+    }
+
+    // TODO: add wsg
+    public boolean onBg() {
+        Zone zone = Zones.getZone(getZoneId());
+        return (zone.isEye() || zone.isArathiBasin() || zone.isAlterac() || zone.isWarsong());
     }
 
     public int getLevel() {

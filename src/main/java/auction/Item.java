@@ -10,35 +10,34 @@ public class Item implements Comparable<Item> {
     private int usableItem;
 
     private int playerId;
+    private int startBid;
     private int currentBid;
     private int buyOut;
     private int expireTime;
 
+    public Item(
+        int auctionId,
+        int itemId,
+        int count,
+        int usableItem,
+        int playerId,
+        int startBid,
+        int currentBid,
+        int buyOut,
+        int expireTime)
+    {
+        this.auctionId = auctionId;
+        this.itemId = itemId;
+        this.count = count;
+        this.usableItem = usableItem;
+        this.playerId = playerId;
+        this.startBid = startBid;
+        this.currentBid = currentBid;
+        this.buyOut = buyOut;
+        this.expireTime = expireTime;
+    }
 
-    //from 3.0.9
-    /*
-    unsigned int Unk00;                // 0x00
-    unsigned int AuctionId;            // 0x04
-    unsigned int ItemEntry;            // 0x08
-    WoWAucEnchantInfo EnchantInfo[7];    // 0x0C
-    unsigned int RandomPropertyID;    // 0x60
-    unsigned int ItemSuffixFactor;    // 0x64
-    unsigned int Count;                // 0x68
-    unsigned int SpellCharges;        // 0x6C
-    unsigned int Unk70;                // 0x70
-    unsigned int Unk74;                // 0x74
-    unsigned int SellerGuidB;        // 0x78
-    unsigned int SellerGuidA;        // 0x7C
-    unsigned int StartBid;            // 0x80
-    unsigned int MinBidInc;            // 0x84
-    unsigned int BuyOut;            // 0x88
-    unsigned int ExpireTime;        // 0x8C
-    unsigned int BidderGuidB;        // 0x90
-    unsigned int BidderGuidA;        // 0x94
-    unsigned int CurrentBid;        // 0x98
-    unsigned int SaleStatus;        // 0x9C
-     */
-
+    // TODO: delete, it's legacy constructor
     public Item(
         int auctionId,
         int itemId,
@@ -49,14 +48,7 @@ public class Item implements Comparable<Item> {
         int buyOut,
         int expireTime)
     {
-        this.auctionId = auctionId;
-        this.itemId = itemId;
-        this.count = count;
-        this.usableItem = usableItem;
-        this.playerId = playerId;
-        this.currentBid = currentBid;
-        this.buyOut = buyOut;
-        this.expireTime = expireTime;
+        this(auctionId, itemId, count, usableItem, playerId, 0, currentBid, buyOut, expireTime);
     }
 
     public Item(int[] arr) {
@@ -65,13 +57,8 @@ public class Item implements Comparable<Item> {
         this.count = arr[23];
         this.usableItem = arr[24];
         this.playerId = arr[26];
-        //28 - start bid, 34 - current bid, if it was done
-        int startBid = arr[28];
-        if (arr[34] != 0) {
-            this.currentBid = arr[34];
-        } else {
-            this.currentBid = startBid;
-        }
+        this.startBid = arr[28];
+        this.currentBid = arr[34];
         this.buyOut = arr[30];
         this.expireTime = arr[31];
     }
@@ -83,6 +70,7 @@ public class Item implements Comparable<Item> {
             String.format("%-2s", count) + " " +
             String.format("%-2s", usableItem) + " " +
             String.format("%-7s", playerId) + " " +
+            String.format("%-8s", startBid) + " " +
             String.format("%-8s", currentBid) + " " +
             String.format("%-8s", buyOut) + " " +
             expireTime;
@@ -153,6 +141,17 @@ public class Item implements Comparable<Item> {
         this.expireTime = expireTime;
     }
 
+    public int getStartBid() {
+        return startBid;
+    }
+
+    public int getRealCurrentBid() {
+        if (currentBid == 0) {
+            return startBid;
+        }
+        return currentBid;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -169,5 +168,16 @@ public class Item implements Comparable<Item> {
     @Override
     public int compareTo(Item o) {
         return Integer.compare(auctionId, o.auctionId);
+    }
+
+    public boolean compareFields(Item o) {
+        return //auctionId == o.auctionId &&
+            itemId == o.itemId &&
+            count == o.count &&
+            //usableItem == o.usableItem &&
+            //playerId == o.playerId &&
+            currentBid == o.currentBid &&
+            buyOut == o.buyOut;
+//            expireTime == o.expireTime;
     }
 }

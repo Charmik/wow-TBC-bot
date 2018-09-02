@@ -1,6 +1,7 @@
 package wow.memory.objects;
 
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.Ignore;
@@ -66,9 +67,40 @@ public class CreatureObjectTest extends BaseTest {
         }
     }
 
+    @Ignore
+    @Test
+    public void getHealth() {
+        for (; ; ) {
+            objectManager.refillPlayers();
+            objectManager.refillUnits();
+
+            Map<Long, UnitObject> units = objectManager.getUnits();
+
+            for (Map.Entry<Long, UnitObject> entry : units.entrySet()) {
+                UnitObject mob = entry.getValue();
+                if (mob.getTargetGuid() != 0) {
+                    System.out.println(Arrays.toString(mob.readBlock()));
+                    System.out.println("targetGuid=" + mob.getTargetGuid());
+//                System.out.println(mob.getTargetGuid());
+                }
+
+            }
+            System.out.println("---------------------");
+            for (Map.Entry<Long, PlayerObject> entry : objectManager.getPlayers().entrySet()) {
+                System.out.println("guid=" + entry.getValue().guid + "    " + entry.getValue().getMaximumHealth());
+            }
+            System.out.println("---------------------");
+            System.out.println("---------------------");
+            System.out.println("---------------------");
+            Utils.sleep(3000);
+        }
+    }
+
     private int getHp(WowObject object) {
         if (object instanceof UnitObject) {
-            return ((UnitObject) object).getHealth();
+            UnitObject mob = (UnitObject) object;
+            System.out.println(mob.getHealth() + " " + mob.getMaximumHealth());
+            return mob.getHealth();
         } else if (object instanceof PlayerObject) {
             return ((PlayerObject) object).getHealth();
         }
@@ -95,10 +127,37 @@ public class CreatureObjectTest extends BaseTest {
             if (object.isPresent()) {
                 if (object.get() instanceof UnitObject) {
                     UnitObject unit = (UnitObject) object.get();
-                    System.out.println(Arrays.toString(unit.readBlock()));
+                    System.out.println(unit.getMana());
+                    //System.out.println(Arrays.toString(unit.readBlock()));
                 }
             }
             Thread.sleep(2000);
+        }
+    }
+
+    @Ignore
+    @Test
+    public void testPlayer() throws InterruptedException {
+        for (; ; ) {
+
+            Map<Long, PlayerObject> players = objectManager.getPlayers();
+            objectManager.refillPlayers();
+            System.out.println(players.size() + " #######" + System.currentTimeMillis());
+            Thread.sleep(1000);
+            System.out.println(objectManager.getPlayers().size());
+            /*
+            objectManager.refillUnits();
+            Map<Long, UnitObject> units = objectManager.getUnits();
+            for (Map.Entry<Long,UnitObject> entry : units.entrySet()) {
+                System.out.println(entry.getValue().getLevel() + " " + entry.getValue().getHealth());
+            }
+            System.out.println("-----------");
+            System.out.println("-----------");
+            System.out.println("-----------");
+            Thread.sleep(5000);
+            break;
+            */
+
         }
     }
 }

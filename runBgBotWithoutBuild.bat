@@ -1,0 +1,1 @@
+java -jar build/libs/bgBot-wow-bot-1.0-SNAPSHOT.jar

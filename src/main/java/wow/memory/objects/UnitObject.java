@@ -11,9 +11,11 @@ import wow.memory.WowMemory;
  * @author Cargeh
  */
 public final class UnitObject extends CreatureObject {
+
     private static final Address HEALTH_DESCRIPTOR = Address.DESCRIPTOR.OBJ_UNIT_HP;
+    private static final Address MAX_HEALTH_DESCRIPTOR = Address.DESCRIPTOR.OBJ_MAX_UNIT_HP;
     private static final Address MANA_DESCRIPTOR = Address.DESCRIPTOR.OBJ_UNIT_MANA;
-    private static final Address UNIT_BLOCK_DESCRIPTOR = Address.DESCRIPTOR.OBJ;
+    private static final Address UNIT_BLOCK_DESCRIPTOR = Address.DESCRIPTOR.OBJ_BLOCK;
     private static final Address COMBO_POINTS = Address.STATIC.TARGET_COMBO_POINTS;
 
     public UnitObject(
@@ -25,8 +27,19 @@ public final class UnitObject extends CreatureObject {
         super(baseAddress, guid, type, wowMemory);
     }
 
+    @Override
     public int getHealth() {
         return readIntDescriptor(HEALTH_DESCRIPTOR);
+    }
+
+    @Override
+    public int getMaximumHealth() {
+        return readIntDescriptor(MAX_HEALTH_DESCRIPTOR);
+    }
+
+    @Override
+    public int needHealthForFull() {
+        return getMaximumHealth() - getHealth();
     }
 
     public int getMana() {

@@ -1,25 +1,29 @@
 package farmbot.Pathing;
 
 import java.awt.*;
+import java.io.File;
 import java.util.Iterator;
 import java.util.List;
 
 import javax.swing.*;
 
 import farmbot.Pathing.Graph.Vertex;
+import javafx.geometry.Point3D;
 
 public class GraphDrawer extends JComponent {
 
-    private Graph graph;
+    private final GlobalGraph globalGraph;
+//    private Graph graph;
 
-    public GraphDrawer(Path path) {
-        this.graph = new Graph();
-        graph.buildGraph(path);
+    public GraphDrawer() {
+//        this.graph = new Graph();
+        globalGraph = new GlobalGraph("routesBG" + File.separator + "AB");
+        globalGraph.buildGlobalGraph();
+//        graph.buildGraph(path);
     }
 
     public static void main(String[] args) {
-        Path path = BotPath.getPathFromFile("30-32_needles.txt");
-        GraphDrawer graphDrawer = new GraphDrawer(path);
+        GraphDrawer graphDrawer = new GraphDrawer();
         graphDrawer.draw();
     }
 
@@ -32,14 +36,22 @@ public class GraphDrawer extends JComponent {
         testFrame.getContentPane().add(buttonsPanel, "South");
         testFrame.pack();
         testFrame.setVisible(true);
-        this.graph.normalize();
+//        this.graph.normalize();
+        this.globalGraph.normalize();
         this.repaint();
     }
 
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        this.graph.floyd();
-        List<Vertex> shortestPath = this.graph.getShortestPath(5, 45);
+        this.globalGraph.dijkstra();
+
+//        List<Vertex> shortestPath = this.globalGraph.getShortestPath(globalGraph.getRandomPointFromGraph(), globalGraph.getRandomPointFromGraph());
+
+        Vertex first = globalGraph.getVertices().get(0);
+        Vertex last = globalGraph.getVertices().get(750);
+        List<Vertex> shortestPath = this.globalGraph.getShortestPath(first.coordinates, last.coordinates);
+
+        System.out.println("shortestPath:" + shortestPath.size());
 
         Iterator var3;
         Vertex current;
@@ -47,7 +59,7 @@ public class GraphDrawer extends JComponent {
             current = (Vertex) var3.next();
         }
 
-        var3 = this.graph.getVertices().iterator();
+        var3 = this.globalGraph.getVertices().iterator();
 
         while (var3.hasNext()) {
             current = (Vertex) var3.next();
@@ -70,7 +82,7 @@ public class GraphDrawer extends JComponent {
     }
 
     private int normalizeX(double v) {
-        return this.normalize(v, 600);
+        return this.normalize(v, 700);
     }
 
     private int normalizeY(double v) {
@@ -81,6 +93,6 @@ public class GraphDrawer extends JComponent {
         double v,
         int add)
     {
-        return (int) (v * 3.0D) + add;
+        return (int) (v * 1.0D) + add;
     }
 }

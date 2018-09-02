@@ -1,0 +1,1 @@
+java -jar build/libs/auction-bot-wow-bot-1.0-SNAPSHOT.jar

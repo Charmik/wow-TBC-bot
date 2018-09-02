@@ -18,9 +18,8 @@ public class RecordPath {
 
     private static Logger log = LoggerFactory.getLogger(RecordPath.class);
 
-
+    // AV x > 1413 stop and next point > our now, (going spirit)
     public static void main(String[] args) throws IOException, InterruptedException {
-
         log.info("Started " + RecordPath.class);
 
         WowInstance wowInstance = new WowInstance("World of Warcraft");
@@ -48,10 +47,4 @@ public class RecordPath {
 
     }
 
-    private static double diff(
-        double x1,
-        double x2)
-    {
-        return Math.abs(x1 - x2);
-    }
 }

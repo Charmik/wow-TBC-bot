@@ -1,0 +1,1 @@
+gradlew fatJarHealBot && java -jar build/libs/healBot-wow-bot-1.0-SNAPSHOT.jar

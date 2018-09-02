@@ -16,6 +16,10 @@ public class Path {
         List<Point3D> points,
         String fileName)
     {
+//        for (int i = 0; i < points.size(); i++) {
+//            Point3D newPoint = points.get(i).add(new Point3D(0, 1000, 0));
+            //points.set(i, newPoint);
+//        }
         this.points = points;
         this.fileName = fileName;
     }

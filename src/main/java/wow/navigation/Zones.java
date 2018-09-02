@@ -296,5 +296,13 @@ public final class Zones {
         public boolean isEye() {
             return id == 3820;
         }
+
+        public boolean isWarsong() {
+            return id == 3277;
+        }
+
+        public boolean isNetherStorm() {
+            return id == 3523;
+        }
     }
 }

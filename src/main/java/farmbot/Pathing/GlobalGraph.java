@@ -1,6 +1,7 @@
 package farmbot.Pathing;
 
 import java.util.List;
+import java.util.Random;
 
 import javafx.geometry.Point3D;
 import javafx.util.Pair;
@@ -13,12 +14,12 @@ public class GlobalGraph {
 
     private static final Logger logger = LoggerFactory.getLogger(GlobalGraph.class);
 
-    Graph graph;
+    private Graph graph;
     private List<Path> paths;
 
-    public GlobalGraph() {
+    public GlobalGraph(String foldName) {
         this.graph = new Graph();
-        this.paths = BotPath.getAllPaths();
+        this.paths = BotPath.getAllPaths(foldName);
     }
 
     public void buildGlobalGraph() {
@@ -69,7 +70,21 @@ public class GlobalGraph {
         return graph.getNearestPointTo(unit);
     }
 
+    public Point3D getRandomPointFromGraph() {
+        Random random = new Random();
+        return graph.getVertices().get(random.nextInt(graph.getVertices().size())).coordinates;
+    }
+
     public void reset() {
         graph.clear();
     }
+
+    public void normalize() {
+        graph.normalize();
+    }
+
+    public List<Graph.Vertex> getVertices() {
+        return graph.getVertices();
+    }
+
 }

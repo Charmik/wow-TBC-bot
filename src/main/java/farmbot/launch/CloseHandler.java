@@ -11,9 +11,14 @@ public class CloseHandler implements Runnable {
 
     Logger logger = LoggerFactory.getLogger(CloseHandler.class);
     private Stopper stopper;
+    private final int hours;
 
-    public CloseHandler(Stopper stopper) {
+    public CloseHandler(
+        Stopper stopper,
+        int hours)
+    {
         this.stopper = stopper;
+        this.hours = hours;
     }
 
     @Override
@@ -23,7 +28,7 @@ public class CloseHandler implements Runnable {
             long now = System.currentTimeMillis();
             logger.info("###time - " + startTime + " " + now + " " + (now - startTime));
             //1*60*60*1000 = 1 hour
-            if (now - startTime > 7 * 60 * 60 * 1000) {
+            if (now - startTime > hours * 60 * 60 * 1000) {
                 logger.error("time to exit, startTime={} finishTime={}", startTime, now);
                 /*
                 try {

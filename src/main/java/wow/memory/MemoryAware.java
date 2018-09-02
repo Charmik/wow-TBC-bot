@@ -28,6 +28,13 @@ public abstract class MemoryAware {
         return value;
     }
 
+    protected long readUInt(Address address) {
+        Memory memory = readMemory(address.getPointer(), address.getBytes());
+        long value = Integer.toUnsignedLong(memory.getInt(0));
+        memory.clear();
+        return value;
+    }
+
     protected long readLong(Address address) {
         Memory memory = readMemory(address.getPointer(), address.getBytes());
         long value = memory.getLong(0);
@@ -141,6 +148,19 @@ public abstract class MemoryAware {
         return readBlock(address, baseAddress);
     }
 
+
+    protected int[] readBlock(
+        long base,
+        Address offset)
+    {
+        Memory memory = readMemory(base, offset);
+        int[] arr = new int[offset.getBytes() / 4];
+        memory.read(0, arr, 0, offset.getBytes() / 4);
+        memory.clear();
+        return arr;
+    }
+
+
     public int[] readBlock(
         Address address,
         long addr)
@@ -229,5 +249,9 @@ public abstract class MemoryAware {
 
     public void setDescriptorAddress(long descriptorAddress) {
         this.descriptorAddress = descriptorAddress;
+    }
+
+    public int getTickCount() {
+        return MemoryApi.getTickCount();
     }
 }

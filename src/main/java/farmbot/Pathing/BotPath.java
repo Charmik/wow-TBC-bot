@@ -25,7 +25,6 @@ public class BotPath {
         if (!fileName.endsWith(".txt")) {
             fileName = fileName + ".txt";
         }
-
         try {
             List<Point3D> points = Files.readAllLines(Paths.get(fileName)).stream().map((e) -> {
                 String[] split = e.split(" ");
@@ -38,15 +37,15 @@ public class BotPath {
         }
     }
 
-    public static Path getPathFromFile(String fileName) {
-        fileName = "routes" + File.separator + fileName;
+    public static Path getPathFromFile(String folder, String fileName) {
+        fileName = folder + File.separator + fileName;
         Path path = getPath(fileName);
         logger.info("getPathFromFile path.size()=" + path.getPoints().size());
         return path;
     }
 
-    public static List<Path> getAllPaths() {
-        File folder = new File("routes");
+    public static List<Path> getAllPaths(String foldName) {
+        File folder = new File(foldName);
         File[] files = folder.listFiles();
         List<Path> paths = new ArrayList<>();
         for (File file : files) {
@@ -61,28 +60,36 @@ public class BotPath {
 
     // just for testing
     public static void main(String[] args) {
-        GlobalGraph globalGraph = new GlobalGraph();
+        GlobalGraph globalGraph = new GlobalGraph("routes");
         globalGraph.buildGlobalGraph();
 
+        /*
         for (; ; ) {
             long start = System.currentTimeMillis();
             globalGraph = new GlobalGraph();
             globalGraph.buildGlobalGraph(); //bug jvm? what?
             System.out.println("time:" + (System.currentTimeMillis() - start));
         }
+        */
 
-        /*
-        globalGraph.floyd();
+        globalGraph.dijkstra();
         //add some stupid test that we have paths.size > 0
-        Path pathFromFile = getPathFromFile("30-32_needles.txt");
+
+        Path pathFromFile = getPathFromFile("routes","30-32_needles.txt");
         Point3D point3D = pathFromFile.getPoints().get(5);
         for (int i = 0; i < 5; i++) {
             System.out.println();
         }
-        List<Graph.Vertex> vertices = globalGraph.getShortestPath(new Point3D(-5538.576, -3498.06, -51.020306), point3D);
+
+        //spirit: 3019.7263 3593.3203 145.75897
+        //troop: 2751.772460 3577.03540039 139.6567077
+
+        //List<Graph.Vertex> vertices = globalGraph.getShortestPath(new Point3D(-5538.576, -3498.06, -51.020306), point3D);
+        List<Graph.Vertex> vertices = globalGraph.getShortestPath(new Point3D(3019.7263, 3593.3203, 145.75897),
+            new Point3D(2751.772460, 3577.03540039, 139.6567077));
         System.out.println("size=" + vertices.size());
         vertices.forEach(System.out::println);
-        */
+
 
     }
 
