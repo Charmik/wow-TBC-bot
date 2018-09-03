@@ -73,8 +73,7 @@ public class Movement {
                 System.out.println("distance: " + distance);
                 ctmManager.stop();
                 castMount();
-                Utils.sleep(5000L);
-                break;
+                return false;
             }
             if (player.isDead()) {
                 break;
@@ -85,11 +84,14 @@ public class Movement {
             }
         }
         ctmManager.stop();
+        if (count > 0) {
+            return false;
+        }
         return true;
     }
 
     private void castMount() {
-        log.info("went to 1 point, try to cast mount");
+        log.info("try to cast mount");
         ctmManager.stop();
         Utils.sleep(1000L);
         wowInstance.click(WinKey.D0);

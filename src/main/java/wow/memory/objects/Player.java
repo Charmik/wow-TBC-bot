@@ -90,7 +90,7 @@ public final class Player extends MemoryAware {
         this.descriptorAddress = initializeDescriptorAddress();
         super.setDescriptorAddress((long) descriptorAddress);
         this.guid = initializeGuid();
-        log.info("player baseAddress=" + baseAddress + " descriptorAddress=" + descriptorAddress);
+        //log.info("player baseAddress=" + baseAddress + " descriptorAddress=" + descriptorAddress);
     }
 
     public void updatePlayer() {

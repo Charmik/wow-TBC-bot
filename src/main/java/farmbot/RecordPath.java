@@ -44,7 +44,6 @@ public class RecordPath {
             prevy = y;
             prevz = z;
         }
-
     }
 
 }

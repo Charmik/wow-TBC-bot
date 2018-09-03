@@ -18,10 +18,7 @@ import wow.memory.objects.PlayerObject;
 import wow.memory.objects.UnitObject;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class BgBot {
@@ -34,12 +31,13 @@ public class BgBot {
     private HealBot healBot;
     private Healer healer;
     private Movement movement;
-    private GlobalGraph globalGraph = new GlobalGraph("routesBG" + File.separator + "EYE");
+    private GlobalGraph globalGraph = new GlobalGraph("routesBG" + File.separator + "WSG");
     private Point3D lastPoint;
     private long lastTimestamp;
     private long lastPlayerHealth;
     private int globalCount = -1;
     private final int HORDE_AV_BOSS = -1320;
+    private final Random random = new Random();
 
     public BgBot() {
         reset();
@@ -129,6 +127,20 @@ public class BgBot {
             last = 25;
         }
         path = path.subList(0, last);
+
+        if (path.size() < 5) {
+            log.info("path is not long enough, we are near to alliance, stay for a while");
+            castMount();
+            for (int i = 0; i < 3; i++) {
+                if (healBot.makeOnePlayerHeal()) {
+                    break;
+                }
+                Utils.sleep(1000);
+            }
+            castMount();
+            return;
+        }
+
         for (Graph.Vertex vertex : path) {
             // check every minute that we stay in one place, so bg is finished
 
@@ -157,7 +169,7 @@ public class BgBot {
             countForMoonfire++;
             if (countForMoonfire % 5 == 0) {
 //                System.out.println("cast moonfire because countForMoonfire:" + countForMoonfire);
-                castMoonfireToNearestTarget();
+                castRandomSpellToNearestEnemy();
             }
             boolean wasDead = false;
             while (player.isDead()) {
@@ -178,19 +190,22 @@ public class BgBot {
             if (healed) {
                 ctmManager.stop();
                 for (int i = 0; i < 5; i++) {
+                    if (player.getHealthPercent() < 75) {
+                        // barkskin
+                        castInstantSkill(WinKey.X);
+                    }
                     if (!healBot.makeOnePlayerHeal()) {
                         break;
                     }
-                    if (player.getHealthPercent() < 10) {
-                        wowInstance.click(WinKey.D6);
-                        wowInstance.click(WinKey.D6);
-                        wowInstance.click(WinKey.D6);
+                    if (player.getHealthPercent() < 15) {
+                        // instant heal yourself + battlemaster
+                        castInstantSkill(WinKey.D6);
                     }
                     Utils.sleep(1500);
                 }
                 Utils.sleep(50);
                 System.out.println("cast moonfire because we are in combat");
-                castMoonfireToNearestTarget();
+                castRandomSpellToNearestEnemy();
             }
 
             player.updatePlayer();
@@ -208,12 +223,14 @@ public class BgBot {
                     // TODO: try unstuck 1 time maybe?
                     log.info("bot couldn't go to the point:{} from:{}", vertex.coordinates, player.getCoordinates());
                     log.info("sleeping, because it's more saver for now");
-                    for (int i = 0; i < 400; i++) {
+                    for (int i = 0; i < 310; i++) {
                         Utils.sleep(1000);
+                        /*
                         if (player.isDead()) {
                             log.info("break from sleeping because someone killed us");
                             break;
                         }
+                        */
                     }
                     break;
                 }
@@ -222,13 +239,19 @@ public class BgBot {
         if (path.size() < 10) {
             log.info("we went too small, we are around allies, sleep");
             castMount();
-            for (int i = 0; i < 5; i++) {
+            for (int i = 0; i < 3; i++) {
                 if (healBot.makeOnePlayerHeal()) {
                     break;
                 }
                 Utils.sleep(1000);
             }
             castMount();
+        }
+    }
+
+    private void castInstantSkill(WinKey key) {
+        for (int j = 0; j < 5; j++) {
+            wowInstance.click(key);
         }
     }
 
@@ -312,7 +335,7 @@ public class BgBot {
         }
     }
 
-    private void castMoonfireToNearestTarget() {
+    private void castRandomSpellToNearestEnemy() {
         objectManager.refillPlayers();
         objectManager.getPlayers().remove(player.getGuid());
         Optional<PlayerObject> nearestPlayerTo = objectManager.getNearestPlayerTo(player);
@@ -325,8 +348,13 @@ public class BgBot {
                 player.target(unitObject);
                 // it's too obvious, that it's bot, maybe try to turn on not so hard somehow
                 //ctmManager.face(unitObject);
-                wowInstance.click(WinKey.PLUS);
-                ctmManager.stop();
+                if (random.nextBoolean()) {
+                    wowInstance.click(WinKey.PLUS);
+                } else {
+                    ctmManager.stop();
+                    castInstantSkill(WinKey.F1);
+                }
+                Utils.sleep(1500);
             }
         }
 

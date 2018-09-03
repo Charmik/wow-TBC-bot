@@ -1,24 +1,24 @@
 package healbot;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Map;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import util.Utils;
 import winapi.components.WinKey;
 import wow.WowInstance;
 import wow.components.Navigation;
 import wow.memory.ObjectManager;
-import wow.memory.objects.CreatureObject;
-import wow.memory.objects.Player;
-import wow.memory.objects.PlayerObject;
-import wow.memory.objects.UnitObject;
-import wow.memory.objects.WowObject;
+import wow.memory.objects.*;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Map;
 
 import static wow.components.UnitReaction.FRIENDLY;
 
 public class HealBot {
+
+    private static final Logger logger = LoggerFactory.getLogger(HealBot.class);
 
     private WowInstance wowInstance;
     private Player player;
@@ -36,12 +36,28 @@ public class HealBot {
     }
 
     public void reset() {
-        this.wowInstance = new WowInstance("World of Warcraft");
-        this.player = wowInstance.getPlayer();
-        this.objectManager = wowInstance.getObjectManager();
-        this.timestampLastHeal = 0L;
-        this.map = new HashMap<>();
-        tankDetector = new TankDetector(objectManager);
+        try {
+            this.wowInstance = new WowInstance("World of Warcraft");
+            this.player = wowInstance.getPlayer();
+            this.objectManager = wowInstance.getObjectManager();
+            this.timestampLastHeal = 0L;
+            this.map = new HashMap<>();
+            tankDetector = new TankDetector(objectManager);
+        } catch (Throwable e) {
+            logger.info(e.getMessage());
+        }
+    }
+
+    public void reset2() {
+        try {
+            this.player = wowInstance.getPlayer();
+            this.objectManager = wowInstance.getObjectManager();
+            this.timestampLastHeal = 0L;
+            this.map = new HashMap<>();
+            tankDetector = new TankDetector(objectManager);
+        } catch (Throwable e) {
+            logger.info(e.getMessage());
+        }
     }
 
     public static void main(String[] args) {
@@ -57,6 +73,7 @@ public class HealBot {
             return false;
         } else {
             if (playerWithMinimumHealth.needHealthForFull() >= MIN_HEALT_FOR_HEAL) {
+                logger.info("heal player needHp:{}", playerWithMinimumHealth.needHealthForFull());
                 makeHeal(playerWithMinimumHealth);
             }
             Utils.sleep(50L);
@@ -65,7 +82,7 @@ public class HealBot {
     }
 
     private boolean makeOnePetHeal() {
-        System.out.println("makeOnePetHeal");
+        logger.info("makeOnePetHeal");
         CreatureObject petWithMinimumHealth = getPetForHeal();
         if (petWithMinimumHealth == null || petWithMinimumHealth.needHealthForFull() < MIN_HEALT_FOR_HEAL) {
             return false;
@@ -86,8 +103,8 @@ public class HealBot {
         while (true) {
             //reset();
             // for swap cc only
-
-            if (System.currentTimeMillis() > lastSleep + 18 * 1000) {
+            /*
+            if (System.currentTimeMillis() > lastSleep + 17 * 1000) {
                 Utils.sleep(2100);
                 wowInstance.click(WinKey.B);
                 boolean wasCastring = false;
@@ -100,15 +117,17 @@ public class HealBot {
                 }
                 lastSleep = System.currentTimeMillis();
                 Utils.sleep(2000);
-                System.out.println("trying CC focus target, wasCasting:" + wasCastring);
+                logger.info("trying CC focus target, wasCasting:" + wasCastring);
             }
+            */
+
 
             //AND EVERYONE in raid is not in combat -> regen mana.
-            if (!player.isInCombat() && player.getManaPercent() < 20) {
+            boolean inCombat = player.isInCombat();
+            if (!inCombat && player.getManaPercent() < 20) {
                 continue;
             }
             try {
-
                 if (!makeOnePlayerHeal()) {
                     notFoundPlayerToHealCount++;
                     PlayerObject tank = tankDetector.guessTank();
@@ -118,7 +137,7 @@ public class HealBot {
                             makeHeal(tank, Spell.LIFEBLOOM);
                             continue;
                         }
-                        UpdateSkill updateSkill = previousHeal.needUpdateLifebloom(tank.needHealthForFull());
+                        UpdateSkill updateSkill = previousHeal.needUpdateLifebloom(tank);
                         if (updateSkill.needUpdateLifebloom) {
                             makeHeal(tank, Spell.LIFEBLOOM);
                         } else if (updateSkill.needUpdateRejuvenation) {
@@ -128,8 +147,8 @@ public class HealBot {
                 } else {
                     notFoundPlayerToHealCount = 0;
                 }
-                if (notFoundPlayerToHealCount == 25) {
-                    System.out.println("dont have players for healing, check pets " + System.currentTimeMillis());
+                if (notFoundPlayerToHealCount == 5) {
+                    logger.info("dont have players for healing, check pets " + System.currentTimeMillis());
                     makeOnePetHeal();
                     notFoundPlayerToHealCount = 0;
                 }
@@ -145,12 +164,41 @@ public class HealBot {
                 }
                 */
             } catch (Throwable e) {
-                //reset();
+                //reset2();
+                System.out.println(e);
+            }
+            if (player.isDead()) {
+                //reset2();
+            }
+            if (!inCombat) {
+                logger.info("we are out of combat, so reset & sleep");
+                reset2();
+                Utils.sleep(3000);
             }
         }
     }
 
     private PlayerObject getPlayerForHeal() {
+        player.updatePlayer();
+        try {
+            objectManager.refillPlayers();
+        } catch (ArrayIndexOutOfBoundsException ignore) {
+        }
+        PlayerObject playerWithMinimumHealth = null;
+        Map<Long, PlayerObject> players = objectManager.getPlayers();
+        for (Map.Entry<Long, PlayerObject> entry : players.entrySet()) {
+            PlayerObject currentPlayer = entry.getValue();
+            if (currentPlayer.getFaction().isAlliance() && !isTooFarAway(currentPlayer) && !currentPlayer.isDead()) {
+                int needHealthForFull = entry.getValue().needHealthForFull();
+                if (playerWithMinimumHealth == null || needHealthForFull > playerWithMinimumHealth.needHealthForFull()) {
+                    playerWithMinimumHealth = currentPlayer;
+                }
+            }
+        }
+        return playerWithMinimumHealth;
+    }
+
+    private PlayerObject getPlayersSortByHealth() {
         player.updatePlayer();
         try {
             objectManager.refillPlayers();
@@ -202,16 +250,17 @@ public class HealBot {
     }
 
     private void makeHeal(CreatureObject playerWithMinimumHealth, Spell spell) {
-        int needHealthForFull = playerWithMinimumHealth.needHealthForFull();
         player.target(playerWithMinimumHealth);
         PreviousHeal previousHeal = map.computeIfAbsent(playerWithMinimumHealth.getGuid(), (k) -> new PreviousHeal());
         if (spell == null) {
-            spell = previousHeal.getSpell(needHealthForFull);
+            spell = previousHeal.getSpell(playerWithMinimumHealth);
         }
         long time = 1510L;
         if (lastSpell == Spell.REGROWTH) {
             time = 2010L;
         }
+
+        logger.info("spell:{}", spell);
 
         if (System.currentTimeMillis() - timestampLastHeal >= time) {
             if (spell != Spell.NONE) {
@@ -219,7 +268,6 @@ public class HealBot {
                     previousHeal.list.add(new Cast(spell, System.currentTimeMillis()));
                 }
                 if (spell == Spell.LIFEBLOOM) {
-                    System.out.println("cast lifebloom");
                     wowInstance.click(WinKey.D1);
                 } else if (spell == Spell.REJUVENATION) {
                     wowInstance.click(WinKey.D4);
@@ -271,9 +319,9 @@ public class HealBot {
             list = new LinkedList<>();
         }
 
-        public Spell getSpell(int needHealthForFull) {
+        public Spell getSpell(CreatureObject needHealthForFull) {
             if (list.isEmpty()) {
-                if (needHealthForFull < 3000) {
+                if (needHealthForFull.needHealthForFull() < 3000) {
                     return Spell.LIFEBLOOM;
                 }
                 return Spell.REGROWTH;
@@ -282,8 +330,9 @@ public class HealBot {
             return updateSkill.spell;
         }
 
-        private UpdateSkill needUpdateLifebloom(int needHealthForFull) {
+        private UpdateSkill needUpdateLifebloom(CreatureObject target) {
             UpdateSkill updateSkill = new UpdateSkill();
+            int needHealthForFull = target.needHealthForFull();
             // if we are OOM - cast bloom
             if (player.getManaPercent() <= 3) {
                 updateSkill.needUpdateLifebloom = true;
@@ -326,8 +375,11 @@ public class HealBot {
                 updateSkill.updateSpellIfNotNull(Spell.REGROWTH);
             }
             if (rejuvenationDifference == -1 || rejuvenationDifference > 14000) {
-                updateSkill.needUpdateRejuvenation = true;
-                updateSkill.updateSpellIfNotNull(Spell.REJUVENATION);
+                // PVE: use rejuvement only for tank, because for dps better to use just bloom, he will get max hp faster then we heal him.
+                if (target.getMaximumHealth() > 13000 || player.onBg()) {
+                    updateSkill.needUpdateRejuvenation = true;
+                    updateSkill.updateSpellIfNotNull(Spell.REJUVENATION);
+                }
             }
             if (needHealthForFull > 8000 && regrowthDifference > 21000) {
                 updateSkill.needUpdateRegrowth = true;

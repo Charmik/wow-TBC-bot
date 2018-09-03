@@ -17,10 +17,10 @@ import static com.sun.jna.platform.win32.WinUser.WM_KEYUP;
 /**
  * @author Cargeh
  */
-public final class Win32api {
+public final class Win32Api {
     private static final User32Extended user32 = User32Extended.SINSTANCE;
 
-    private Win32api() throws IllegalAccessException {
+    private Win32Api() throws IllegalAccessException {
         throw new IllegalAccessException("Cannot instantiate Win32Api");
     }
 

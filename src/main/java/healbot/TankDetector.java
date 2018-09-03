@@ -46,7 +46,7 @@ public class TankDetector {
         Map<Long, PlayerObject> players = objectManager.getPlayers();
         if (tankGuid != -1) {
             PlayerObject tank = players.get(tankGuid);
-            System.out.println("found tank, maxHp" + tank.getMaximumHealth() + " his maxHealth: " + tank.getMaximumHealth());
+//            System.out.println("found tank, maxHp" + tank.getMaximumHealth() + " his maxHealth: " + tank.getMaximumHealth());
             return tank;
         }
         return null;

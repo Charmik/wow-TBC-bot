@@ -1,7 +1,7 @@
 package wow;
 
 import winapi.MemoryApi;
-import winapi.Win32api;
+import winapi.Win32Api;
 import wow.memory.CtmManager;
 import wow.memory.ObjectManager;
 import wow.memory.WowMemory;
@@ -28,8 +28,8 @@ public abstract class BaseTest {
     protected static WowInstance wowInstance;
 
     static {
-        hwnd = Win32api.getProcessHwnd(WOW_WINDOW_NAME);
-        processId = Win32api.getProcessId(hwnd);
+        hwnd = Win32Api.getProcessHwnd(WOW_WINDOW_NAME);
+        processId = Win32Api.getProcessId(hwnd);
         handle = MemoryApi.openProcess(PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, processId);
         memory = new WowMemory(processId);
         player = memory.getPlayer();

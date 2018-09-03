@@ -2,7 +2,7 @@ package wow;
 
 import com.sun.jna.platform.win32.WinDef.HWND;
 import util.Utils;
-import winapi.Win32api;
+import winapi.Win32Api;
 import winapi.components.WinKey;
 import wow.memory.CtmManager;
 import wow.memory.ObjectManager;
@@ -27,8 +27,8 @@ public final class WowInstance {
     public int millisForSleeping = 50;
 
     public WowInstance(String windowName) {
-        hwnd = Win32api.getProcessHwnd(windowName);
-        int processId = Win32api.getProcessId(hwnd);
+        hwnd = Win32Api.getProcessHwnd(windowName);
+        int processId = Win32Api.getProcessId(hwnd);
 
         this.wowMemory = new WowMemory(processId);
     }
@@ -69,23 +69,23 @@ public final class WowInstance {
     }
 
     public void keyDown(WinKey key) {
-        Win32api.keyDown(hwnd, key);
+        Win32Api.keyDown(hwnd, key);
     }
 
     public void keyUp(WinKey key) {
-        Win32api.keyUp(hwnd, key);
+        Win32Api.keyUp(hwnd, key);
     }
 
     public void keyDownEditing(WinKey key) {
-        Win32api.keyDownEditing(hwnd, key);
+        Win32Api.keyDownEditing(hwnd, key);
     }
 
     public void keyDown(int key) {
-        Win32api.keyDown(hwnd, key);
+        Win32Api.keyDown(hwnd, key);
     }
 
     public void keyUp(int key) {
-        Win32api.keyUp(hwnd, key);
+        Win32Api.keyUp(hwnd, key);
     }
 
     public void setMillisForSleeping(int millisForSleeping) {
