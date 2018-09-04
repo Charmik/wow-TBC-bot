@@ -11,10 +11,16 @@ import wow.WowInstance;
 public class Writer {
 
     public static void buyItem(WowInstance wowInstance, int index, int price, boolean scanFullAuction) {
-        if (scanFullAuction) wowInstance.setMillisForSleeping(300);
-        if (scanFullAuction) Utils.sleep(300);
+        if (scanFullAuction) {
+            wowInstance.setMillisForSleeping(300);
+        }
+        if (scanFullAuction) {
+            Utils.sleep(300);
+        }
         wowInstance.click(WinKey.ENTER);
-        if (scanFullAuction) Utils.sleep(300);
+        if (scanFullAuction) {
+            Utils.sleep(300);
+        }
         wowInstance.clickEditing(WinKey.SLASH);
         wowInstance.clickEditing(WinKey.r);
         wowInstance.clickEditing(WinKey.u);
