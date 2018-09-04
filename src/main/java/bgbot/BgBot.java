@@ -24,6 +24,8 @@ import java.util.stream.Collectors;
 public class BgBot {
 
     private static Logger log = LoggerFactory.getLogger(BgBot.class);
+    private static final int MAX_ATTEMPTS_FOR_BG = 10;
+
     private WowInstance wowInstance = new WowInstance("World of Warcraft");
     private CtmManager ctmManager;
     private Player player;
@@ -31,7 +33,7 @@ public class BgBot {
     private HealBot healBot;
     private Healer healer;
     private Movement movement;
-    private GlobalGraph globalGraph = new GlobalGraph("routesBG" + File.separator + "WSG");
+    private GlobalGraph globalGraph = new GlobalGraph("routesBG" + File.separator + "EYE");
     private Point3D lastPoint;
     private long lastTimestamp;
     private long lastPlayerHealth;
@@ -127,7 +129,7 @@ public class BgBot {
             last = 25;
         }
         path = path.subList(0, last);
-
+        /*
         if (path.size() < 5) {
             log.info("path is not long enough, we are near to alliance, stay for a while");
             castMount();
@@ -140,6 +142,7 @@ public class BgBot {
             castMount();
             return;
         }
+        */
 
         for (Graph.Vertex vertex : path) {
             // check every minute that we stay in one place, so bg is finished
@@ -149,7 +152,7 @@ public class BgBot {
                 objectManager.refillPlayers();
                 int size = objectManager.getPlayers().size();
                 log.info("checking end of the bg current:" + player.getCoordinates() + " prev:" + lastPoint + " playerSize:" + size
-                        + "player.getHealth():" + player.getHealth() + " lastPlayerHealth:" + lastPlayerHealth);
+                        + " player.getHealth():" + player.getHealth() + " lastPlayerHealth:" + lastPlayerHealth);
                 lastTimestamp = System.currentTimeMillis();
                 if (player.getCoordinates().equals(lastPoint) && size <= 3) {
                     if (player.getHealth() == lastPlayerHealth) {
@@ -222,8 +225,8 @@ public class BgBot {
                 if (!movement.goToNextPoint(vertex.coordinates)) {
                     // TODO: try unstuck 1 time maybe?
                     log.info("bot couldn't go to the point:{} from:{}", vertex.coordinates, player.getCoordinates());
-                    log.info("sleeping, because it's more saver for now");
-                    for (int i = 0; i < 310; i++) {
+                    log.info("sleeping, because it's more safer for now");
+                    for (int i = 0; i < 5 * 60 + 10; i++) {
                         Utils.sleep(1000);
                         /*
                         if (player.isDead()) {
@@ -239,7 +242,7 @@ public class BgBot {
         if (path.size() < 10) {
             log.info("we went too small, we are around allies, sleep");
             castMount();
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < 5; i++) {
                 if (healBot.makeOnePlayerHeal()) {
                     break;
                 }
@@ -380,11 +383,14 @@ public class BgBot {
     }
 
     private void regBg() {
+        int failed = 0;
         while (!player.onBg()) {
             player.updatePlayer();
             for (int i = 0; i < 2 && (!player.onBg()); ++i) {
                 objectManager.refillUnits();
                 Optional<UnitObject> unit = objectManager.getNearestUnitTo(player);
+                // TODO: validate level of bg unit 61/71
+                // and maybe use GUID, if it saves after restart? not sure
                 wowInstance.click(WinKey.ESC);
                 if (unit.isPresent()) {
                     log.info("found bg register");
@@ -400,13 +406,17 @@ public class BgBot {
                 wowInstance.click(WinKey.S);
                 wowInstance.click(WinKey.S);
                 Utils.sleep(1000L);
-                wowInstance.click(WinKey.D2);
             }
             log.info("waiting in city");
             for (int i = 0; i < 360; ++i) {
                 if (!player.onBg()) {
                     Utils.sleep(1000L);
                 }
+            }
+            failed++;
+            if (failed == MAX_ATTEMPTS_FOR_BG) {
+                log.error("couldn't get to BG for {} attempts, stop the bot", MAX_ATTEMPTS_FOR_BG);
+                System.exit(1);
             }
         }
 
