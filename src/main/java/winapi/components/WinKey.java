@@ -132,17 +132,8 @@ public enum WinKey {
     private int value;
     private WPARAM wparam;
 
-    private WinKey(int value) {
+    WinKey(int value) {
         this.value = value;
-    }
-
-    public static WinKey getKey(int code) {
-        WinKey key = keys[code];
-        if (key == null) {
-            throw new RuntimeException("Unable to find key");
-        } else {
-            return key;
-        }
     }
 
     public WPARAM getWParam() {
@@ -164,6 +155,6 @@ public enum WinKey {
         if (x == 7) return D7;
         if (x == 8) return D8;
         if (x == 9) return D9;
-        throw new RuntimeException(x + " is not a digit");
+        throw new IllegalArgumentException(x + " is not a digit");
     }
 }
