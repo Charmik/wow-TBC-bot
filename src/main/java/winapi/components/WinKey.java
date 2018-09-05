@@ -1,5 +1,6 @@
 package winapi.components;
 
+import java.lang.reflect.Field;
 import java.util.Arrays;
 
 import com.sun.jna.platform.win32.WinDef.WPARAM;
@@ -144,17 +145,22 @@ public enum WinKey {
         return this.wparam;
     }
 
-    public static WinKey mapIntToWinKey(int x) {
-        if (x == 0) return D0;
-        if (x == 1) return D1;
-        if (x == 2) return D2;
-        if (x == 3) return D3;
-        if (x == 4) return D4;
-        if (x == 5) return D5;
-        if (x == 6) return D6;
-        if (x == 7) return D7;
-        if (x == 8) return D8;
-        if (x == 9) return D9;
-        throw new IllegalArgumentException(x + " is not a digit");
+    public static WinKey charToWinKey(char fieldName) {
+        Class refEnum = WinKey.A.getClass();
+        try {
+            Field key;
+            if(Character.isDigit(fieldName)){
+                key = refEnum.getDeclaredField("D" + Character.toString(fieldName));
+            }else{
+                key = refEnum.getDeclaredField(Character.toString(fieldName));
+            }
+            try {
+                return (WinKey) key.get(refEnum);
+            } catch (IllegalAccessException e) {
+                throw new ClassCastException("the field is not in a WinKey");
+            }
+        } catch (NoSuchFieldException e) {
+            throw new IllegalArgumentException("Illegal field name: " + fieldName);
+        }
     }
 }
