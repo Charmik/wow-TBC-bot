@@ -1,6 +1,13 @@
 package bgbot;
 
-import farmbot.Healer;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Random;
+import java.util.stream.Collectors;
+
 import farmbot.Pathing.GlobalGraph;
 import farmbot.Pathing.Graph;
 import healbot.HealBot;
@@ -17,10 +24,6 @@ import wow.memory.objects.Player;
 import wow.memory.objects.PlayerObject;
 import wow.memory.objects.UnitObject;
 
-import java.io.File;
-import java.util.*;
-import java.util.stream.Collectors;
-
 public class BgBot {
 
     private static Logger log = LoggerFactory.getLogger(BgBot.class);
@@ -31,9 +34,8 @@ public class BgBot {
     private Player player;
     private ObjectManager objectManager;
     private HealBot healBot;
-    private Healer healer;
     private Movement movement;
-    private GlobalGraph globalGraph = new GlobalGraph("routesBG" + File.separator + "EYE");
+    private GlobalGraph globalGraph = new GlobalGraph("routesBG" + File.separator + "AV");
     private Point3D lastPoint;
     private long lastTimestamp;
     private long lastPlayerHealth;
@@ -50,7 +52,6 @@ public class BgBot {
         this.player = wowInstance.getPlayer();
         this.objectManager = wowInstance.getObjectManager();
         this.healBot = new HealBot();
-        this.healer = new Healer(player, wowInstance, ctmManager);
         this.movement = new Movement(player, ctmManager, wowInstance, objectManager);
 
         this.lastPoint = new Point3D(0, 0, 0);
@@ -80,6 +81,7 @@ public class BgBot {
                 ctmManager.stop();
 
                 player.updatePlayer();
+                log.info("step=" + i);
                 int sleepTime = 60 * 1000;
                 for (int j = 0; j < 3; j++) {
                     System.out.println("index=" + j + " sleep between bgs:" + sleepTime + " ");
@@ -193,14 +195,16 @@ public class BgBot {
             if (healed) {
                 ctmManager.stop();
                 for (int i = 0; i < 5; i++) {
-                    if (player.getHealthPercent() < 75) {
+                    if (player.getHealthPercent() < 75 && player.isInCombat()) {
                         // barkskin
                         castInstantSkill(WinKey.X);
                     }
                     if (!healBot.makeOnePlayerHeal()) {
+                        // grasp
+                        castInstantSkill(WinKey.H);
                         break;
                     }
-                    if (player.getHealthPercent() < 15) {
+                    if (player.getHealthPercent() < 15 && player.isInCombat()) {
                         // instant heal yourself + battlemaster
                         castInstantSkill(WinKey.D6);
                     }
@@ -226,6 +230,7 @@ public class BgBot {
                     // TODO: try unstuck 1 time maybe?
                     log.info("bot couldn't go to the point:{} from:{}", vertex.coordinates, player.getCoordinates());
                     log.info("sleeping, because it's more safer for now");
+                    // you will be kicked from BG for afk 5 min -> queue next.
                     for (int i = 0; i < 5 * 60 + 10; i++) {
                         Utils.sleep(1000);
                         /*
