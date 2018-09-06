@@ -51,7 +51,7 @@ public final class CtmManager extends MemoryAware {
     private static final int goToIterationCheck = 1; // ms
     private static final double allowedDistancePerGotoIteration = 0.05;
 
-    private static final int maxStuckWaitCounter = 4000;
+    private static final int maxStuckWaitCounter = 5000;
     private static final int maxStuckInRowBeforeExit = 500;
     private static Logger log = LoggerFactory.getLogger(CtmManager.class);
     private final ThreadLocal<Integer> stuckInRowCounter = new ThreadLocal<>();
