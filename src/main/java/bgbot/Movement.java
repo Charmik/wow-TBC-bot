@@ -37,6 +37,7 @@ public class Movement {
                 return false;
             }
             if (player.getZone().isShatrhCity()) {
+                log.error("zone is shatr:{}", player.getZone());
                 return false;
             }
             if (player.isInCombat() && !mobTargetingMe()) {
@@ -85,6 +86,7 @@ public class Movement {
         }
         ctmManager.stop();
         if (count > 0) {
+            log.error("exit because count:{}", count);
             return false;
         }
         return true;
