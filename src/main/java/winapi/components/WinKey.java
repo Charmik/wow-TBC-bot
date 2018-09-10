@@ -168,7 +168,7 @@ public enum WinKey {
     }
 
     public static List<WinKey> mapStringToWinkeys(String str) {
-        ArrayList<WinKey> winKeys = new ArrayList<>();
+        ArrayList<WinKey> winKeys = new ArrayList<>(str.length());
         for (int i = 0; i < str.length(); i++) {
             winKeys.add(charToWinKey(str.charAt(i)));
         }

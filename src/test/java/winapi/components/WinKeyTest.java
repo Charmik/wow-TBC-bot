@@ -8,6 +8,7 @@ import java.util.List;
 import static org.junit.Assert.*;
 
 public class WinKeyTest {
+
     @Test
     public void mapIntToWinkeys() throws Exception {
         List<WinKey> winKeys = WinKey.mapIntToWinkeys(156701);
@@ -43,7 +44,6 @@ public class WinKeyTest {
 
     @Test
     public void charToWinKey() throws Exception {
-
         Assert.assertEquals(WinKey.A, WinKey.charToWinKey('A'));
         Assert.assertEquals(WinKey.B, WinKey.charToWinKey('B'));
         Assert.assertEquals(WinKey.C, WinKey.charToWinKey('C'));
@@ -98,5 +98,4 @@ public class WinKeyTest {
         Assert.assertEquals(WinKey.y, WinKey.charToWinKey('y'));
         Assert.assertEquals(WinKey.z, WinKey.charToWinKey('z'));
     }
-
 }
