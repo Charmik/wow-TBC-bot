@@ -1,6 +1,10 @@
 package winapi.components;
 
+import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import com.sun.jna.platform.win32.WinDef.WPARAM;
 
@@ -144,17 +148,43 @@ public enum WinKey {
         return this.wparam;
     }
 
-    public static WinKey mapIntToWinKey(int x) {
-        if (x == 0) return D0;
-        if (x == 1) return D1;
-        if (x == 2) return D2;
-        if (x == 3) return D3;
-        if (x == 4) return D4;
-        if (x == 5) return D5;
-        if (x == 6) return D6;
-        if (x == 7) return D7;
-        if (x == 8) return D8;
-        if (x == 9) return D9;
-        throw new IllegalArgumentException(x + " is not a digit");
+    public static WinKey charToWinKey(char fieldName) {
+        Class refEnum = WinKey.A.getClass();
+        try {
+            Field key;
+            if (Character.isDigit(fieldName)) {
+                key = refEnum.getDeclaredField("D" + Character.toString(fieldName));
+            } else {
+                key = refEnum.getDeclaredField(Character.toString(fieldName));
+            }
+            try {
+                return (WinKey) key.get(refEnum);
+            } catch (IllegalAccessException e) {
+                throw new ClassCastException("the field is not in a WinKey");
+            }
+        } catch (NoSuchFieldException e) {
+            throw new IllegalArgumentException("Illegal field name: " + fieldName);
+        }
+    }
+
+    public static List<WinKey> mapStringToWinkeys(String str) {
+        ArrayList<WinKey> winKeys = new ArrayList<>();
+        for (int i = 0; i < str.length(); i++) {
+            winKeys.add(charToWinKey(str.charAt(i)));
+        }
+        return winKeys;
+    }
+
+    public static List<WinKey> mapIntToWinkeys(int number) {
+        ArrayList<WinKey> winKeys = new ArrayList<>();
+        if (number == 0) {
+            winKeys.add(charToWinKey('0'));
+        }
+        while (number > 0) {
+            winKeys.add(charToWinKey(Character.forDigit(number % 10, 10)));
+            number /= 10;
+        }
+        Collections.reverse(winKeys);
+        return winKeys;
     }
 }
