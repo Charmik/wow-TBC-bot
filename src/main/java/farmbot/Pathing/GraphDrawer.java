@@ -17,7 +17,7 @@ public class GraphDrawer extends JComponent {
 
     public GraphDrawer() {
 //        this.graph = new Graph();
-        globalGraph = new GlobalGraph("routesBG" + File.separator + "AB");
+        globalGraph = new GlobalGraph("routesBG" + File.separator + "WSG");
         globalGraph.buildGlobalGraph();
 //        graph.buildGraph(path);
     }
@@ -48,21 +48,15 @@ public class GraphDrawer extends JComponent {
 //        List<Vertex> shortestPath = this.globalGraph.getShortestPath(globalGraph.getRandomPointFromGraph(), globalGraph.getRandomPointFromGraph());
 
         Vertex first = globalGraph.getVertices().get(0);
-        Vertex last = globalGraph.getVertices().get(750);
+        Vertex last = globalGraph.getVertices().get(30);
         List<Vertex> shortestPath = this.globalGraph.getShortestPath(first.coordinates, last.coordinates);
 
         System.out.println("shortestPath:" + shortestPath.size());
 
-        Iterator var3;
-        Vertex current;
-        for (var3 = shortestPath.iterator(); var3.hasNext(); current.visit = true) {
-            current = (Vertex) var3.next();
+        for (Vertex current : shortestPath) {
+            current.visit = true;
         }
-
-        var3 = this.globalGraph.getVertices().iterator();
-
-        while (var3.hasNext()) {
-            current = (Vertex) var3.next();
+        for (Vertex current : globalGraph.getVertices()) {
             g.setColor(Color.black);
             if (current.visit) {
                 g.setColor(Color.red);
@@ -71,10 +65,8 @@ public class GraphDrawer extends JComponent {
             int currentX = this.normalizeX(current.coordinates.getX());
             int currentY = this.normalizeY(current.coordinates.getY());
             g.fillOval(currentX, currentY, 10, 10);
-            Iterator var7 = current.neighbors.iterator();
 
-            while (var7.hasNext()) {
-                Vertex neighbor = (Vertex) var7.next();
+            for (Vertex neighbor : current.neighbors) {
                 g.drawLine(currentX, currentY, this.normalizeX(neighbor.coordinates.getX()), this.normalizeY(neighbor.coordinates.getY()));
             }
         }
@@ -82,17 +74,17 @@ public class GraphDrawer extends JComponent {
     }
 
     private int normalizeX(double v) {
-        return this.normalize(v, 700);
+        return this.normalize(v, 900);
     }
 
     private int normalizeY(double v) {
-        return this.normalize(v, 700);
+        return this.normalize(v, 500);
     }
 
     private int normalize(
         double v,
         int add)
     {
-        return (int) (v * 1.0D) + add;
+        return (int) (v * 2.5D) + add;
     }
 }
