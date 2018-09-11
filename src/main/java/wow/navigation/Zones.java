@@ -23,8 +23,9 @@ public final class Zones {
 
     public static Zone getZone(int zoneId) {
         Zone zone = zones.get(zoneId);
-        if (zone == null)
+        if (zone == null) {
             throw new RuntimeException("Zone " + zoneId + " is not found.");
+        }
         return zone;
     }
 
