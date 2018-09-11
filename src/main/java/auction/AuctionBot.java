@@ -128,7 +128,7 @@ public class AuctionBot {
                     if (successAnalyze && !wasSelling) {
                         logger.info("calculate auction & sell items");
                         analyzer.calculate();
-                        sellWithRetries(2);
+                        sellWithRetries(1);
                         wasSelling = true;
                     } else {
                         failed++;
