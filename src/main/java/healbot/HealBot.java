@@ -9,10 +9,7 @@ import wow.components.Navigation;
 import wow.memory.ObjectManager;
 import wow.memory.objects.*;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Map;
+import java.util.*;
 
 import static wow.components.UnitReaction.FRIENDLY;
 
@@ -30,6 +27,7 @@ public class HealBot {
     private TankDetector tankDetector;
     // try to decrease time if tank lose blooms too often
     private final int UPDATE_TIME_FOR_LIFEBLOOM = 5600;
+    private final int fightStarted = 0;
 
     public HealBot() {
         reset();
@@ -56,7 +54,7 @@ public class HealBot {
             this.map = new HashMap<>();
             tankDetector = new TankDetector(objectManager);
         } catch (Throwable e) {
-            logger.info(e.getMessage());
+            logger.info(e.getMessage() + Arrays.toString(e.getStackTrace()));
         }
     }
 
@@ -116,7 +114,7 @@ public class HealBot {
                     wowInstance.click(WinKey.D2);
                 }
                 lastSleep = System.currentTimeMillis();
-                Utils.sleep(2000);
+                Utils.sleep(3000);
                 logger.info("trying CC focus target, wasCasting:" + wasCastring);
             }
             */
@@ -132,6 +130,7 @@ public class HealBot {
                     notFoundPlayerToHealCount++;
                     PlayerObject tank = tankDetector.guessTank();
                     if (tank != null) {
+                        logger.info("found tank:{}", tank.needHealthForFull());
                         PreviousHeal previousHeal = map.get(tank.getGuid());
                         if (previousHeal == null) {
                             makeHeal(tank, Spell.LIFEBLOOM);
@@ -374,9 +373,16 @@ public class HealBot {
                 updateSkill.needUpdateRegrowth = true;
                 updateSkill.updateSpellIfNotNull(Spell.REGROWTH);
             }
-            if (rejuvenationDifference == -1 || rejuvenationDifference > 14000) {
+            if (rejuvenationDifference == -1 || rejuvenationDifference > 12000) {
                 // PVE: use rejuvement only for tank, because for dps better to use just bloom, he will get max hp faster then we heal him.
-                if (target.getMaximumHealth() > 13000 || player.onBg()) {
+                // obBg often gives RuntimeExc in instances
+                boolean onBg = false;
+                try {
+                    onBg = player.onBg();
+                } catch (Throwable t) {
+                    System.out.println(t.getMessage());
+                }
+                if (target.getMaximumHealth() > 13000 || onBg) {
                     updateSkill.needUpdateRejuvenation = true;
                     updateSkill.updateSpellIfNotNull(Spell.REJUVENATION);
                 }
