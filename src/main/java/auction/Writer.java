@@ -181,21 +181,21 @@ public class Writer {
     }
 
 
-    private static void sendMsg(WowInstance wowInstance, int number) {
+    public static void sendMsg(WowInstance wowInstance, int number) {
         List<WinKey> winKeys = WinKey.mapIntToWinkeys(number);
         for (WinKey winKey : winKeys) {
             wowInstance.clickEditing(winKey);
         }
     }
 
-    private static void sendMsg(WowInstance wowInstance, String message) {
+    public static void sendMsg(WowInstance wowInstance, String message) {
         List<WinKey> winKeys = WinKey.mapStringToWinkeys(message);
         for (WinKey winKey : winKeys) {
             wowInstance.clickEditing(winKey);
         }
     }
 
-    private static void sendMsg(WowInstance wowInstance, char character) {
+    public static void sendMsg(WowInstance wowInstance, char character) {
         wowInstance.clickEditing(WinKey.charToWinKey(character));
     }
 

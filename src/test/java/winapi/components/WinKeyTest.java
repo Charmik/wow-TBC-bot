@@ -10,21 +10,21 @@ import static org.junit.Assert.*;
 public class WinKeyTest {
 
     @Test
-    public void mapIntToWinkeys() throws Exception {
+    public void mapIntToWinkeys() {
         List<WinKey> winKeys = WinKey.mapIntToWinkeys(156701);
         Assert.assertEquals(WinKey.D0, winKeys.get(4));
         Assert.assertEquals(WinKey.D6, winKeys.get(2));
     }
 
     @Test
-    public void mapStringToWinkeys() throws Exception {
+    public void mapStringToWinkeys() {
         List<WinKey> winKeys = WinKey.mapStringToWinkeys("fAgZ1z3");
         Assert.assertEquals(WinKey.f, winKeys.get(0));
         Assert.assertEquals(WinKey.D3, winKeys.get(6));
     }
 
     @Test
-    public void charToWinKeyDigits() throws Exception {
+    public void charToWinKeyDigits() {
         Assert.assertEquals(WinKey.D0, WinKey.charToWinKey('0'));
         Assert.assertEquals(WinKey.D1, WinKey.charToWinKey('1'));
         Assert.assertEquals(WinKey.D2, WinKey.charToWinKey('2'));
@@ -43,7 +43,7 @@ public class WinKeyTest {
     }
 
     @Test
-    public void charToWinKey() throws Exception {
+    public void charToWinKey() {
         Assert.assertEquals(WinKey.A, WinKey.charToWinKey('A'));
         Assert.assertEquals(WinKey.B, WinKey.charToWinKey('B'));
         Assert.assertEquals(WinKey.C, WinKey.charToWinKey('C'));
