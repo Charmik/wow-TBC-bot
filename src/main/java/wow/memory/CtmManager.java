@@ -114,6 +114,10 @@ public final class CtmManager extends MemoryAware {
         Coordinates2D initialPosition = get2DCoordsFor(player);
         moveTo(object);
         while (!areNear(initialPosition, object)) { // check every second
+            // TODO: fix, broke not bg movement (farmBot)
+            if (!player.onBg()) {
+                return false;
+            }
             if (player.isDead()) {
                 return false;
             }
