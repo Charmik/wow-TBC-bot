@@ -36,7 +36,8 @@ public class Movement {
                 log.error("prev zone:{} != current:{}", zone, player.getZone());
                 return false;
             }
-            if (player.getZone().isShatrhCity()) {
+            // TODO: fix
+            if (!player.onBg()) {
                 log.error("zone is shatr:{}", player.getZone());
                 return false;
             }
@@ -64,14 +65,14 @@ public class Movement {
                 return false;
             }
             //travel form
-            wowInstance.click(WinKey.D7);
+            wowInstance.click(WinKey.D2);
             ++count;
             //log.info("count=" + count);
             if (count % 3 == 0) {
-                System.out.println("can't go to the point, stop and sleep");
-                System.out.println("player: " + player.getCoordinates());
-                System.out.println("nextPoint: " + nextPoint);
-                System.out.println("distance: " + distance);
+                log.info("can't go to the point, stop and sleep, count:{}", count);
+                log.info("player: " + player.getCoordinates());
+                log.info("nextPoint: " + nextPoint);
+                log.info("distance: " + distance);
                 ctmManager.stop();
                 castMount();
                 return false;
