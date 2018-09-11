@@ -49,9 +49,9 @@ public class Writer {
         wowInstance.clickEditing(WinKey.t);
         wowInstance.clickEditing(WinKey.DOUBLE_QUOTES);
         wowInstance.clickEditing(WinKey.COMMA);
-        Writer.writeNumber(wowInstance, index);
+        Writer.sendMsg(wowInstance, index);
         wowInstance.clickEditing(WinKey.COMMA);
-        Writer.writeNumber(wowInstance, price);
+        Writer.sendMsg(wowInstance, price);
         wowInstance.clickEditing(WinKey.RIGHT_BRACKET);
         wowInstance.click(WinKey.ENTER);
     }
@@ -66,9 +66,9 @@ public class Writer {
         wowInstance.clickEditing(WinKey.r);
         wowInstance.clickEditing(WinKey.m);
         wowInstance.clickEditing(WinKey.SPACEBAR);
-        Writer.writeNumber(wowInstance, bag);
+        Writer.sendMsg(wowInstance, bag);
         wowInstance.clickEditing(WinKey.SPACEBAR);
-        Writer.writeNumber(wowInstance, slot);
+        Writer.sendMsg(wowInstance, slot);
         wowInstance.click(WinKey.ENTER);
         Utils.sleep(2000);
     }
@@ -99,11 +99,11 @@ public class Writer {
         wowInstance.clickEditing(WinKey.o);
         wowInstance.clickEditing(WinKey.n);
         wowInstance.clickEditing(WinKey.LEFT_BRACKET);
-        writeNumber(wowInstance, price);
+        sendMsg(wowInstance, price);
         wowInstance.clickEditing(WinKey.COMMA);
-        writeNumber(wowInstance, price);
+        sendMsg(wowInstance, price);
         wowInstance.clickEditing(WinKey.COMMA);
-        writeNumber(wowInstance, 2880);
+        sendMsg(wowInstance, 2880);
         wowInstance.clickEditing(WinKey.RIGHT_BRACKET);
         wowInstance.click(WinKey.ENTER);
     }
@@ -136,9 +136,9 @@ public class Writer {
         wowInstance.clickEditing(WinKey.e);
         wowInstance.clickEditing(WinKey.m);
         wowInstance.clickEditing(WinKey.LEFT_BRACKET);
-        writeNumber(wowInstance, bag);
+        sendMsg(wowInstance, bag);
         wowInstance.clickEditing(WinKey.COMMA);
-        writeNumber(wowInstance, slot);
+        sendMsg(wowInstance, slot);
         wowInstance.clickEditing(WinKey.RIGHT_BRACKET);
         wowInstance.click(WinKey.ENTER);
 
@@ -181,19 +181,22 @@ public class Writer {
     }
 
 
-    private static void writeNumber(WowInstance wowInstance, int x) {
-        List<Integer> list = new ArrayList<>();
-        if (x == 0) {
-            list.add(0);
+    private static void sendMsg(WowInstance wowInstance, int number) {
+        List<WinKey> winKeys = WinKey.mapIntToWinkeys(number);
+        for (WinKey winKey : winKeys) {
+            wowInstance.clickEditing(winKey);
         }
-        while (x > 0) {
-            list.add(x % 10);
-            x /= 10;
+    }
+
+    private static void sendMsg(WowInstance wowInstance, String message) {
+        List<WinKey> winKeys = WinKey.mapStringToWinkeys(message);
+        for (WinKey winKey : winKeys) {
+            wowInstance.clickEditing(winKey);
         }
-        Collections.reverse(list);
-        for (Integer digit : list) {
-            wowInstance.clickEditing(WinKey.mapIntToWinKey(digit));
-        }
+    }
+
+    private static void sendMsg(WowInstance wowInstance, char character) {
+        wowInstance.clickEditing(WinKey.charToWinKey(character));
     }
 
     public static void getItemsFromMailbox() {
