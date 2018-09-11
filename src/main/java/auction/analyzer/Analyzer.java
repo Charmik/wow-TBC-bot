@@ -90,11 +90,9 @@ public class Analyzer {
         Item item,
         int index)
     {
-
-        if (uselessItem(item.getItemId())) {
+        if (uselessItem(item)) {
             return new BuyingItem(BuyType.NONE);
         }
-
 
         Statistic statistic = itemIdToStatistics.get(item.getItemId());
         if (statistic == null || statistic.count < 20) {
@@ -119,10 +117,13 @@ public class Analyzer {
         return new BuyingItem(index, buyType.getKey());
     }
 
-    private boolean uselessItem(int itemId) {
-        int[] itemsForSkip = {2576, 10036, 4601};
+    private boolean uselessItem(Item item) {
+        int[] itemsForSkip = {2576, 10036, 4601, 25679};
+        if (item.getItemId() == 38082 && (item.getBuyOut() > 1200 || item.getCurrentBid() > 1200)) {
+            return false;
+        }
         for (int skip : itemsForSkip) {
-            if (skip == itemId) {
+            if (skip == item.getItemId()) {
                 return true;
             }
         }
