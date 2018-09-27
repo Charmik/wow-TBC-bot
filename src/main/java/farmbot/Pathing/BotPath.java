@@ -49,6 +49,9 @@ public class BotPath {
         File[] files = folder.listFiles();
         List<Path> paths = new ArrayList<>();
         for (File file : files) {
+            if (file.isDirectory()) {
+                continue;
+            }
             logger.info(file.getName());
             Path path = getPath(file.getPath());
             paths.add(path);
