@@ -70,7 +70,7 @@ public class NavigationTest extends BaseTest {
         Point3D p1 = new Point3D(2523.686, 1596.5973, 1269.3445);
         Point3D p2 = new Point3D(2445.8625, 1596.8517, 1199.2115);
         System.out.println(p1.distance(p2));
-        for(;;) {
+        for (; ; ) {
             ctmManager.moveTo(new Point3D(2046.6353, 1647.0458, 1170.6542));
         }
     }
