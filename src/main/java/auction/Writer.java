@@ -1,25 +1,28 @@
 package auction;
 
-import java.util.List;
-
 import util.Utils;
 import winapi.components.WinKey;
 import wow.WowInstance;
 
+import java.util.List;
+
 public class Writer {
 
     public static void buyItem(WowInstance wowInstance, int index, int price, boolean scanFullAuction) {
+        if (scanFullAuction) {
+            wowInstance.setMillisForSleeping(300);
+        }
         wowInstance.click(WinKey.ENTER);
         if (scanFullAuction) {
             Utils.sleep(300);
         }
         wowInstance.clickEditing(WinKey.SLASH);
-        sendMsg(wowInstance,"run");
+        sendMsg(wowInstance, "run");
         wowInstance.clickEditing(WinKey.SPACEBAR);
-        sendMsg(wowInstance,"PlaceAuctionBid");
+        sendMsg(wowInstance, "PlaceAuctionBid");
         wowInstance.clickEditing(WinKey.LEFT_BRACKET);
         wowInstance.clickEditing(WinKey.DOUBLE_QUOTES);
-        sendMsg(wowInstance,"list");
+        sendMsg(wowInstance, "list");
         wowInstance.clickEditing(WinKey.DOUBLE_QUOTES);
         wowInstance.clickEditing(WinKey.COMMA);
         Writer.sendMsg(wowInstance, index);
@@ -55,9 +58,9 @@ public class Writer {
         Utils.sleep(100);
         wowInstance.click(WinKey.ENTER);
         wowInstance.clickEditing(WinKey.SLASH);
-        sendMsg(wowInstance,"run");
+        sendMsg(wowInstance, "run");
         wowInstance.clickEditing(WinKey.SPACEBAR);
-        sendMsg(wowInstance,"StartAuction");
+        sendMsg(wowInstance, "StartAuction");
         wowInstance.clickEditing(WinKey.LEFT_BRACKET);
         sendMsg(wowInstance, price);
         wowInstance.clickEditing(WinKey.COMMA);
@@ -72,9 +75,9 @@ public class Writer {
         ///run PickupContainerItem(bag, slot);
         wowInstance.click(WinKey.ENTER);
         wowInstance.clickEditing(WinKey.SLASH);
-        sendMsg(wowInstance,"run");
+        sendMsg(wowInstance, "run");
         wowInstance.clickEditing(WinKey.SPACEBAR);
-        sendMsg(wowInstance,"PickupContainerItem");
+        sendMsg(wowInstance, "PickupContainerItem");
         wowInstance.clickEditing(WinKey.LEFT_BRACKET);
         sendMsg(wowInstance, bag);
         wowInstance.clickEditing(WinKey.COMMA);
@@ -85,9 +88,9 @@ public class Writer {
         ///run ClickAuctionSellItemButton()
         wowInstance.click(WinKey.ENTER);
         wowInstance.clickEditing(WinKey.SLASH);
-        sendMsg(wowInstance,"run");
+        sendMsg(wowInstance, "run");
         wowInstance.clickEditing(WinKey.SPACEBAR);
-        sendMsg(wowInstance,"ClickAuctionSellItemButton");
+        sendMsg(wowInstance, "ClickAuctionSellItemButton");
         wowInstance.clickEditing(WinKey.LEFT_BRACKET);
         wowInstance.clickEditing(WinKey.RIGHT_BRACKET);
         wowInstance.click(WinKey.ENTER);
