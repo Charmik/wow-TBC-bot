@@ -32,26 +32,28 @@ public class Movement {
         Zones.Zone zone = player.getZone();
         while (!Navigation.isNear(new Navigation.Coordinates3D(player.getX(), player.getY(), player.getZ()), nextPoint)) {
             // teleported
-            if (!player.getZone().equals(zone)) {
-                log.error("prev zone:{} != current:{}", zone, player.getZone());
-                return false;
-            }
-            // TODO: fix
+//            if (!player.getZone().equals(zone)) {
+            /*
             if (!player.onBg()) {
-                log.error("zone is shatr:{}", player.getZone());
+//                log.error("prev zone:{} != current:{}", zone, player.getZone());
+                log.info("stop because we are not on bg");
+                ctmManager.stop();
                 return false;
             }
+            */
             if (player.isInCombat() && !mobTargetingMe()) {
                 // doesn't work for AV
                 //return false;
             }
             if (player.isDead()) {
-                return true;
+                // TODO: need to be for bg bot
+                //return true;
             }
             double distance = player.getCoordinates().distance(nextPoint);
 
             boolean checkDistance = true;
             // for jump from bg
+            /*
             if (player.getZone().isEye() || player.getZone().isWarsong()) {
                 // TODO: merge logic of 2 bgs
                 if (player.getZone().isEye()) {
@@ -60,6 +62,7 @@ public class Movement {
                     }
                 }
             }
+            */
             if (checkDistance && distance > 300) {
                 log.info("the next point is too far away, break distance:" + distance);
                 return false;
@@ -78,7 +81,7 @@ public class Movement {
                 return false;
             }
             if (player.isDead()) {
-                break;
+                //break;
             }
             boolean success = ctmManager.goTo(nextPoint, false);
             if (success) {
