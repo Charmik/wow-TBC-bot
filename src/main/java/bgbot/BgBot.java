@@ -1,13 +1,5 @@
 package bgbot;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Random;
-import java.util.stream.Collectors;
-
 import farmbot.Pathing.GlobalGraph;
 import farmbot.Pathing.Graph;
 import healbot.HealBot;
@@ -24,24 +16,37 @@ import wow.memory.objects.Player;
 import wow.memory.objects.PlayerObject;
 import wow.memory.objects.UnitObject;
 
+import java.io.File;
+import java.util.*;
+import java.util.stream.Collectors;
+
 public class BgBot {
 
     private static Logger log = LoggerFactory.getLogger(BgBot.class);
-    private static final int MAX_ATTEMPTS_FOR_BG = 10;
+    private static final int SLEEP_BETWEEN_BG_MINUTES = 3;
+    private static final int MAX_ATTEMPTS_FOR_REG_BG = 30;
+    private static final int BG_COUNT = 50;
+    private static final String ROUTES_BG_FOLDER = "routesBG";
+    private static final String[] PATHS = {
+            ROUTES_BG_FOLDER + File.separator + "WSG",
+            ROUTES_BG_FOLDER + File.separator + "AV",
+            ROUTES_BG_FOLDER + File.separator + "AB",
+            ROUTES_BG_FOLDER + File.separator + "EYE"};
 
     private WowInstance wowInstance = new WowInstance("World of Warcraft");
     private CtmManager ctmManager;
     private Player player;
     private ObjectManager objectManager;
     private HealBot healBot;
-    private Movement movement;
-    private GlobalGraph globalGraph = new GlobalGraph("routesBG" + File.separator + "AV");
+    private bgbot.Movement movement;
+    private GlobalGraph globalGraph = new GlobalGraph("routesBG" + File.separator + "EYE");
+    //private GlobalGraph globalGraph = new GlobalGraph(PATHS);
     private Point3D lastPoint;
     private long lastTimestamp;
-    private long lastPlayerHealth;
     private int globalCount = -1;
     private final int HORDE_AV_BOSS = -1320;
     private final Random random = new Random();
+    private long startBgTimestamp;
 
     public BgBot() {
         reset();
@@ -56,7 +61,7 @@ public class BgBot {
 
         this.lastPoint = new Point3D(0, 0, 0);
         this.lastTimestamp = 0;
-        this.lastPlayerHealth = 0;
+        this.startBgTimestamp = 0;
     }
 
     public static void main(String[] args) {
@@ -66,29 +71,32 @@ public class BgBot {
 
     private void run() {
         getPaths();
-        for (int i = 0; i < 10; ++i) {
+
+        for (int i = 0; i < BG_COUNT; ++i) {
             try {
                 player.updatePlayer();
-                log.info("step=" + i);
+                log.info("step={} from:{}", i, BG_COUNT);
                 regBg();
                 player.updatePlayer();
 
+                this.startBgTimestamp = System.currentTimeMillis();
                 while (player.onBg()) {
                     goRandomPointOnBg();
                 }
-
                 log.info("exit from bg");
                 ctmManager.stop();
 
                 player.updatePlayer();
-                log.info("step=" + i);
                 int sleepTime = 60 * 1000;
-                for (int j = 0; j < 3; j++) {
-                    System.out.println("index=" + j + " sleep between bgs:" + sleepTime + " ");
+                for (int j = 0; j < SLEEP_BETWEEN_BG_MINUTES; j++) {
+                    log.info("index={} from {}, sleep between bgs:{} ms", j, SLEEP_BETWEEN_BG_MINUTES, sleepTime);
                     Utils.sleep(sleepTime);
                 }
                 player.updatePlayer();
             } catch (Throwable e) {
+                int sleepingTime = 10000;
+                log.info("got exception sleeping for:{} ms", sleepingTime, e);
+                Utils.sleep(sleepingTime);
                 reset();
             }
         }
@@ -101,23 +109,23 @@ public class BgBot {
             while (randomPointFromGraph.getX() > player.getX()) {
                 randomPointFromGraph = globalGraph.getRandomPointFromGraph();
             }
+            log.info("got random point:{} player coordinastes:{}", randomPointFromGraph, player.getCoordinates());
         }
         Point3D destination = getMiddlePlayersPoint(randomPointFromGraph);
 
         boolean isRandomPoint = false;
         if (destination.equals(randomPointFromGraph)) {
-            System.out.println("we have random point");
             isRandomPoint = true;
         }
-        // base of alterac
+        // base of alterac, at start of bg we need just go to south
         if (destination.getX() > 700 && player.getZone().isAlterac()) {
             destination = randomPointFromGraph;
         }
-        System.out.println("destination:" + destination + " player:" + player.getCoordinates());
+        log.info("destination:" + destination + " player:" + player.getCoordinates());
         List<Graph.Vertex> path = globalGraph.getShortestPathFromPlayerToPoint(player, destination);
         //playing trying to go north
 
-        System.out.println("found path:" + path.size());
+        log.info("found path:" + path.size());
         int countForMoonfire = 0;
         int last = 100;
         if (!player.getZone().isAlterac()) {
@@ -147,33 +155,36 @@ public class BgBot {
         */
 
         for (Graph.Vertex vertex : path) {
-            // check every minute that we stay in one place, so bg is finished
-
+            // check that we stay in one place, so bg is finished
             // understanding that's bg is over and we stay afk in one place
-            if (System.currentTimeMillis() - lastTimestamp > 20 * 1000) {
+            // TODO: need more conditions
+            if (System.currentTimeMillis() - lastTimestamp > 30 * 1000) {
                 objectManager.refillPlayers();
                 int size = objectManager.getPlayers().size();
-                log.info("checking end of the bg current:" + player.getCoordinates() + " prev:" + lastPoint + " playerSize:" + size
-                        + " player.getHealth():" + player.getHealth() + " lastPlayerHealth:" + lastPlayerHealth);
+                log.info("checking end of the bg current:" + player.getCoordinates() +
+                        " prev:" + lastPoint + " playerSize:" + size);
                 lastTimestamp = System.currentTimeMillis();
                 if (player.getCoordinates().equals(lastPoint) && size <= 3) {
-                    if (player.getHealth() == lastPlayerHealth) {
-                        log.info("we were stuck in one place more than 1 minute, sleep and break from cycle");
-                        ctmManager.stop();
-                        Utils.sleep(2 * 60 * 1000);
-                        break;
-                    }
-                    lastPlayerHealth = player.getHealth();
+                    Point3D coordinates = player.getCoordinates().add(5, 5, 5);
+                    //boolean success = movement.goToNextPoint(coordinates);
+                    //if (!success) {
+                    log.info("we were stuck in one place more than 1 minute, sleeping...");
+                    ctmManager.stop();
+                    Utils.sleep(2 * 60 * 1000);
+                    break;
+//                    } else {
+//                        log.info("we thought that it's eng of the bg, but we could go to the point:{} player's coordinates:{}",
+//                                coordinates, player.getCoordinates());
+//                    }
                 }
-                lastPoint = player.getCoordinates();
             }
+            lastPoint = player.getCoordinates();
             globalCount++;
             if (globalCount % 100 == 0) {
                 castMount();
             }
             countForMoonfire++;
             if (countForMoonfire % 5 == 0) {
-//                System.out.println("cast moonfire because countForMoonfire:" + countForMoonfire);
                 castRandomSpellToNearestEnemy();
             }
             boolean wasDead = false;
@@ -187,7 +198,7 @@ public class BgBot {
                 countForMoonfire = -1;
             }
             if (wasDead) {
-                System.out.println("player was dead, so break from cycle");
+                log.info("player was dead, so break from cycle");
                 break;
             }
             // TODO: check target is not line of sight
@@ -211,42 +222,48 @@ public class BgBot {
                     Utils.sleep(1500);
                 }
                 Utils.sleep(50);
-                System.out.println("cast moonfire because we are in combat");
+                log.info("cast moonfire because we are in combat");
                 castRandomSpellToNearestEnemy();
             }
 
             player.updatePlayer();
             if (!player.onBg()) {
-                System.out.println("player not on bg");
+                log.info("player not on bg");
                 ctmManager.stop();
                 break;
             }
-            if (player.getManaPercent() < 10) {
+            if (player.getManaPercent() < 10 && !player.isDead()) {
                 castInnervate();
             }
 //            if (destination.getX() < player.getCoordinates().getX() || player.getCoordinates().getX() < HORDE_AV_BOSS) {
             if (!healBot.makeOnePlayerHeal()) {
                 if (!movement.goToNextPoint(vertex.coordinates)) {
-                    // TODO: try unstuck 1 time maybe?
-                    log.info("bot couldn't go to the point:{} from:{}", vertex.coordinates, player.getCoordinates());
-                    log.info("sleeping, because it's more safer for now");
-                    // you will be kicked from BG for afk 5 min -> queue next.
-                    for (int i = 0; i < 5 * 60 + 10; i++) {
-                        Utils.sleep(1000);
+                    // start bg
+                    if (System.currentTimeMillis() - startBgTimestamp < 180 * 1000) {
+                        Utils.sleep(10 * 1000);
+                    } else {
+                        // TODO: try unstuck 1 time maybe?
+                        log.info("bot couldn't go to the point:{} from:{}", vertex.coordinates, player.getCoordinates());
+                        log.info("sleeping, because it's more safer for now");
+                        // you will be kicked from BG for afk 5 min -> queue next.
+                        for (int i = 0; i < 5 * 60 + 10; i++) {
+                            Utils.sleep(1000);
                         /*
                         if (player.isDead()) {
                             log.info("break from sleeping because someone killed us");
                             break;
                         }
                         */
+                        }
+                        break;
                     }
-                    break;
                 }
             }
         }
         if (path.size() < 10) {
             log.info("we went too small, we are around allies, sleep");
             castMount();
+            // TODO: check that if we need go more than X range - break
             for (int i = 0; i < 5; i++) {
                 if (healBot.makeOnePlayerHeal()) {
                     break;
@@ -274,7 +291,6 @@ public class BgBot {
                 .collect(Collectors.toList());
         Point3D coordinates = new Point3D(0, 0, 0);
         int size = ally.size();
-        //System.out.println("allySize:" + size);
         boolean[][] near = new boolean[size][size];
         for (int i = 0; i < ally.size(); i++) {
             for (int j = 0; j < ally.size(); j++) {
@@ -311,33 +327,19 @@ public class BgBot {
             coordinates = new Point3D(coordinates.getX() + player.getX(), coordinates.getY() + player.getY(), coordinates.getZ() + player.getZ());
         }
         log.info("we found {} ally, their coordinates:\n{}", ally.size(), ally.stream().map(e -> e.getCoordinates() + "\n").toArray());
-        System.out.println("sizePlayer=" + size);
+        log.info("sizePlayer=" + size);
         coordinates = new Point3D(coordinates.getX() / size, coordinates.getY() / size, coordinates.getZ() / size);
 
         if (player.getZone().isAlterac() && size < 4) {
+            log.info("didn't find group or players, so go to random point:{}", randomPoint);
             return randomPoint;
         }
-        /*
-        if (player.getZone().isAlterac()) {
-            if (size < 4 || coordinates.getX() == 0 || coordinates.getX() > player.getX()) {
-                //horde base
-                if (player.getX() < HORDE_AV_BOSS) {
-                    log.info("sleeping , because we are at horde base");
-                    //Utils.sleep(30 * 1000);
-                }
-                return randomPoint;
-            }
-        }
-        */
-        //System.out.println("coordinates in getMiddlePlayersPoint:" + coordinates);
         return coordinates;
     }
-
 
     private void castInnervate() {
         Utils.sleep(500L);
         for (int i = 0; i < 5; ++i) {
-            wowInstance.click(WinKey.F3);
             wowInstance.click(WinKey.F3);
             Utils.sleep(100);
         }
@@ -419,8 +421,8 @@ public class BgBot {
                 }
             }
             failed++;
-            if (failed == MAX_ATTEMPTS_FOR_BG) {
-                log.error("couldn't get to BG for {} attempts, stop the bot", MAX_ATTEMPTS_FOR_BG);
+            if (failed == MAX_ATTEMPTS_FOR_REG_BG) {
+                log.error("couldn't get to BG for {} attempts, stop the bot", MAX_ATTEMPTS_FOR_REG_BG);
                 System.exit(1);
             }
         }
