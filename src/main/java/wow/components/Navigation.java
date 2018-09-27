@@ -15,8 +15,6 @@ import wow.navigation.Zones;
  */
 public class Navigation {
 
-    private static Logger log = LoggerFactory.getLogger(Navigation.class);
-
     private static float NEAR_COORDS_DIFFERENCE = 2.0f;
     private static float NEAR_COORDS_DIFFERENCE_MOB = 8.0f;
     private static float NEAR_COORDS_DIFFERENCE_MOB_WITF_FF = 16.0f;
