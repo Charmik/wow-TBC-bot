@@ -69,7 +69,7 @@ public class Graph {
 
     public void buildGraph(Path path) {
         if (path.getPoints().isEmpty()) {
-            logger.info("buildGraph: dont build because point in file=" + path.getFileName() + " is empty");
+            logger.info("buildGraph: don't build because point in file=" + path.getFileName() + " is empty");
             return;
         }
         int prevSize = vertices.size();
@@ -96,7 +96,7 @@ public class Graph {
         }
         deleteDuplicateVertexes();
         logger.info("GRAPH SIZE=" + vertices.size());
-        logger.info("graph=" + vertices);
+        logger.debug("graph=" + vertices);
         int vIndex = -1;
         for (Vertex x : vertices) {
             logger.debug(x.toString());

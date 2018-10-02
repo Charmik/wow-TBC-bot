@@ -6,7 +6,6 @@ import javafx.geometry.Point3D;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.Utils;
-import winapi.components.WinKey;
 import wow.WowInstance;
 import wow.components.Navigation;
 import wow.memory.objects.Player;
@@ -114,6 +113,12 @@ public final class CtmManager extends MemoryAware {
         Coordinates2D initialPosition = get2DCoordsFor(player);
         moveTo(object);
         while (!areNear(initialPosition, object)) { // check every second
+            // TODO: fix, broke not bg movement (farmBot)
+            if (!player.onBg()) {
+                stop();
+                log.info("stop because we are not in bg");
+                return false;
+            }
             if (player.isDead()) {
                 return false;
             }

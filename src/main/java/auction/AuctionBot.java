@@ -19,6 +19,7 @@ import wow.memory.objects.Player;
 public class AuctionBot {
 
     private static final Logger logger = LoggerFactory.getLogger(Bot.class);
+    private static final int FREQUENCY_FOR_SELLING = 50;
 
     private static final WowInstance wowInstance = new WowInstance("World of Warcraft");
     private final Player player;
@@ -45,13 +46,14 @@ public class AuctionBot {
         PriceLogger priceLogger = new PriceLogger(folder + File.separator + "logPrices.txt");
 
         FilesManager filesManager = new FilesManager(folder);
-        analyzer = new Analyzer(wowInstance, folder, priceLogger, filesManager);
+        analyzer = new Analyzer(wowInstance, folder, priceLogger, filesManager, scanOnlyFirstPage);
         analyzer.calculate();
         buyer = new Buyer(scanOnlyFirstPage, folder, analyzer, filesManager);
         AuctionManager auctionManager = wowInstance.getAuctionManager();
         seller = new Seller(auctionManager, wowInstance, priceLogger, analyzer);
         if (player.getFaction().isHorde()) {
-            telegramBot = new TelegramBot();
+//            telegramBot = new TelegramBot();
+            telegramBot = null;
         } else {
             telegramBot = null;
         }
@@ -120,23 +122,21 @@ public class AuctionBot {
 //            mailbox.getMail();
 //            auctionMovement.goToAuction();
                 int failed = 0;
-                int n = 100;
 
                 boolean wasSelling = false;
-                for (int i = 0; i < n; i++) {
+                for (int i = 0; i < FREQUENCY_FOR_SELLING; i++) {
                     boolean successAnalyze = buyer.analyze();
                     if (successAnalyze && !wasSelling) {
                         logger.info("calculate auction & sell items");
                         analyzer.calculate();
-                        sellWithRetries(2);
+                        sellWithRetries(1);
                         wasSelling = true;
                     } else {
                         failed++;
                         logger.error("bot failed to analyze auction at iteration:{}", i);
                     }
                 }
-                if (failed == n) {
-
+                if (failed == FREQUENCY_FOR_SELLING) {
                     if (telegramBot != null) {
                         telegramBot.sendMessageToCharm("bot didn't find auction " + failed + " times, " +
                                 "faction:" + player.getFaction().getFactionName() + " check it");

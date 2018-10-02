@@ -39,28 +39,31 @@ public class Analyzer {
     private final WowInstance wowInstance;
     private Map<Integer, List<Item>> currentItemsOnAuction = new HashMap<>();
 
-    private final Set<Item> buyingItems = new HashSet<>();
-    private int profit = 30000;
-    private static final double BUYOUT_PERCENT = 0.60;
+    private int profit = 50000;
+    private static final double BUYOUT_PERCENT = 0.70;
     private static final int REMOVE_ITEMS_PERCENT = 2;
 
     public Analyzer(
         WowInstance wowInstance,
         String path,
         PriceLogger priceLogger,
-        FilesManager filesManager)
+        FilesManager filesManager,
+        boolean scanOnlyFirstPage)
     {
         this.wowInstance = wowInstance;
-        bidManager = new BidManager(path + File.separator + "bidHistory.txt");
+        this.bidManager = new BidManager(path + File.separator + "bidHistory.txt");
         this.priceLogger = priceLogger;
         this.filesManager = filesManager;
+        if (scanOnlyFirstPage) {
+            profit = 250000;
+        }
     }
 
     public static void main(String[] args) throws IOException {
         String path = "history_auction/alliance";
-        Analyzer analyzer = new Analyzer(null, path, null, new FilesManager(path));
+        Analyzer analyzer = new Analyzer(null, path, null, new FilesManager(path), false);
         analyzer.calculate();
-        Statistic statistic = analyzer.itemIdToStatistics.get(19257);
+        Statistic statistic = analyzer.itemIdToStatistics.get(22451);
         System.out.println(statistic);
     }
 
@@ -90,6 +93,17 @@ public class Analyzer {
         Item item,
         int index)
     {
+        // TODO: delete
+        if (item.getItemId() == 34837) {
+            logger.info("found the ring, item:{}", item);
+            if (item.getBuyOut() < 70000000) {
+                return new BuyingItem(BuyType.BUYOUT);
+            }
+            if (item.getCurrentBid() < 70000000) {
+                return new BuyingItem(BuyType.BID);
+            }
+        }
+
         if (uselessItem(item)) {
             return new BuyingItem(BuyType.NONE);
         }
@@ -118,7 +132,7 @@ public class Analyzer {
     }
 
     private boolean uselessItem(Item item) {
-        int[] itemsForSkip = {2576, 10036, 4601, 25679};
+        int[] itemsForSkip = {2576, 10036, 4601, 25679, 851};
         if (item.getItemId() == 38082 && (item.getBuyOut() > 1200 || item.getCurrentBid() > 1200)) {
             return false;
         }
@@ -166,8 +180,8 @@ public class Analyzer {
         boolean scanFullAuction)
     {
         if (buyType == BuyType.BUYOUT) {
-            logger.info("item: " + item + " buyType: " + buyType + " " + itemIdToStatistics.get(item.getItemId()));
             buyItem(item, index, item.getBuyOut(), scanFullAuction);
+            logger.info("item: " + item + " buyType: " + buyType + " " + itemIdToStatistics.get(item.getItemId()));
         } else {
             if (bidManager.shouldBid(item.getAuctionId(), item.getCurrentBid())) {
                 int bidPrice;
@@ -333,21 +347,20 @@ public class Analyzer {
         }
     }
 
-    private boolean buyItem(
+    private void buyItem(
         Item item,
         int index,
         int price,
         boolean scanFullAuction)
     {
-        if (buyingItems.contains(item)) {
-            logger.info("buying item, index:" + index + " price:" + price);
-            buyingItems.add(item);
+        if (price < 0) {
+            logger.error("don't buy because price:{} for item:{}", price, item);
+            return;
         }
         if (scanFullAuction) {
             priceLogger.logBuyingPrice(item, price);
         }
         Writer.buyItem(wowInstance, index, price, scanFullAuction);
-        return true;
     }
 
     public void setProfit(int profit) {

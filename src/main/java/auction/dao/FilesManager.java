@@ -77,7 +77,7 @@ public class FilesManager {
         int newIndex = lastFile.index + 1;
 
         List<String> strings = Files.readAllLines(Paths.get(filePath));
-        if (strings.size() < 20000) {
+        if (strings.size() < 10000) {
             logger.info("don't save file because it's size:{}", strings.size());
             return;
         }
@@ -99,8 +99,15 @@ public class FilesManager {
 
     public List<Scan> readFiles() throws IOException {
         List<Scan> scans = new ArrayList<>();
-        for (File file : new File(path).listFiles()) {
-            if ("bidHistory.txt".equals(file.getName()) || "logPrices.txt".equals(file.getName())
+        File[] files = new File(path).listFiles();
+
+        List<File> list = Arrays.asList(files).subList(files.length - 15, files.length);
+        files = list.toArray(files);
+
+        for (File file : files) {
+            if (file == null
+                || "bidHistory.txt".equals(file.getName())
+                || "logPrices.txt".equals(file.getName())
                 || ".DS_Store".equals(file.getName())) {
                 continue;
             }

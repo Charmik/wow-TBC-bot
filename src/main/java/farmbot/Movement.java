@@ -15,7 +15,7 @@ import wow.memory.CtmManager;
 import wow.memory.objects.Player;
 import wow.memory.objects.UnitObject;
 
-class Movement {
+public class Movement {
 
     private static final Logger logger = LoggerFactory.getLogger(Movement.class);
     private final Player player;
@@ -45,7 +45,7 @@ class Movement {
         this.corpseCoordinate = null;
     }
 
-    boolean goToNextPoint(Point3D nextPoint) {
+    public boolean goToNextPoint(Point3D nextPoint) {
         int count = 0;
         while (!Navigation.isNear(new Coordinates3D(player.getX(), player.getY(), player.getZ()), nextPoint)) {
             ++count;

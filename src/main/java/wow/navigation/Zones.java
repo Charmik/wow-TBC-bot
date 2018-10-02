@@ -18,13 +18,14 @@ public final class Zones {
 
     static {
         Arrays.stream(Zone.values())
-            .forEach(zone -> zones.put(zone.id, zone));
+                .forEach(zone -> zones.put(zone.id, zone));
     }
 
     public static Zone getZone(int zoneId) {
         Zone zone = zones.get(zoneId);
-        if (zone == null)
+        if (zone == null) {
             throw new RuntimeException("Zone " + zoneId + " is not found.");
+        }
         return zone;
     }
 
@@ -248,12 +249,11 @@ public final class Zones {
         private double yDifference;
 
         Zone(
-            int id,
-            double y1,
-            double y2,
-            double x1,
-            double x2)
-        {
+                int id,
+                double y1,
+                double y2,
+                double x1,
+                double x2) {
             this.id = id;
             this.y = y1;
             this.x = x1;
@@ -303,6 +303,18 @@ public final class Zones {
 
         public boolean isNetherStorm() {
             return id == 3523;
+        }
+
+        public boolean isStranglethornVale() {
+            return id == 33;
+        }
+
+        public boolean isWinterspring() {
+            return id == 618;
+        }
+
+        public boolean isTanaris() {
+            return id == 440;
         }
     }
 }

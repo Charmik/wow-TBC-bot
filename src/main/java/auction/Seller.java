@@ -44,9 +44,17 @@ public class Seller {
                 // skip first line in the last bag
                 startSlot = 5;
             }
-            for (int slot = startSlot; slot <= 16; slot++) {
+            int maxSlots = 16;
+            if (bag > 0) {
+                maxSlots = 18;
+            }
+            for (int slot = startSlot; slot <= maxSlots; slot++) {
                 try {
                     int itemId = auctionManager.getItemId(wowInstance, bag, slot);
+                    // TODO: delete
+                    if (itemId == 34837) {
+                        continue;
+                    }
                     logger.info("bag:{} slot:{} itemId:{}", bag, slot, itemId);
                     if (itemId != -1) {
                         int lastPriceForItem = priceLogger.getLastPriceForItem(itemId);

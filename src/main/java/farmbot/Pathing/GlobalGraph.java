@@ -1,5 +1,6 @@
 package farmbot.Pathing;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -22,11 +23,20 @@ public class GlobalGraph {
         this.paths = BotPath.getAllPaths(foldName);
     }
 
+    public GlobalGraph(String[] foldNames) {
+        this.graph = new Graph();
+        this.paths = new ArrayList<>();
+        for (String foldName : foldNames) {
+            this.paths.addAll(BotPath.getAllPaths(foldName));
+        }
+    }
+
     public void buildGlobalGraph() {
         logger.info("start build globalGraph");
         for (Path path : paths) {
             graph.buildGraph(path);
         }
+        logger.info("start dijkstra");
         graph.dijkstra();
         logger.info("globalGraph size=" + graph.getVertices().size());
     }

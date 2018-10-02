@@ -32,25 +32,28 @@ public class Movement {
         Zones.Zone zone = player.getZone();
         while (!Navigation.isNear(new Navigation.Coordinates3D(player.getX(), player.getY(), player.getZ()), nextPoint)) {
             // teleported
-            if (!player.getZone().equals(zone)) {
-                log.error("prev zone:{} != current:{}", zone, player.getZone());
+//            if (!player.getZone().equals(zone)) {
+            /*
+            if (!player.onBg()) {
+//                log.error("prev zone:{} != current:{}", zone, player.getZone());
+                log.info("stop because we are not on bg");
+                ctmManager.stop();
                 return false;
             }
-            if (player.getZone().isShatrhCity()) {
-                log.error("zone is shatr:{}", player.getZone());
-                return false;
-            }
+            */
             if (player.isInCombat() && !mobTargetingMe()) {
                 // doesn't work for AV
                 //return false;
             }
             if (player.isDead()) {
-                return true;
+                // TODO: need to be for bg bot
+                //return true;
             }
             double distance = player.getCoordinates().distance(nextPoint);
 
             boolean checkDistance = true;
             // for jump from bg
+            /*
             if (player.getZone().isEye() || player.getZone().isWarsong()) {
                 // TODO: merge logic of 2 bgs
                 if (player.getZone().isEye()) {
@@ -59,25 +62,26 @@ public class Movement {
                     }
                 }
             }
+            */
             if (checkDistance && distance > 300) {
                 log.info("the next point is too far away, break distance:" + distance);
                 return false;
             }
             //travel form
-            wowInstance.click(WinKey.D7);
+            wowInstance.click(WinKey.D2);
             ++count;
             //log.info("count=" + count);
             if (count % 3 == 0) {
-                System.out.println("can't go to the point, stop and sleep");
-                System.out.println("player: " + player.getCoordinates());
-                System.out.println("nextPoint: " + nextPoint);
-                System.out.println("distance: " + distance);
+                log.info("can't go to the point, stop and sleep, count:{}", count);
+                log.info("player: " + player.getCoordinates());
+                log.info("nextPoint: " + nextPoint);
+                log.info("distance: " + distance);
                 ctmManager.stop();
                 castMount();
                 return false;
             }
             if (player.isDead()) {
-                break;
+                //break;
             }
             boolean success = ctmManager.goTo(nextPoint, false);
             if (success) {
