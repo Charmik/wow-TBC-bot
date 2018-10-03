@@ -1,5 +1,6 @@
 package wow;
 
+import auction.Account;
 import auction.Writer;
 import farmbot.launch.ScheduledLauncher;
 import org.slf4j.Logger;
@@ -10,15 +11,15 @@ import winapi.components.WinKey;
 public class Reconnect {
 
     private static final Logger logger = LoggerFactory.getLogger(ScheduledLauncher.class);
+    private static final long SLEEP_AFTER_DISCONNECT = 1000 * 60 * 1;
 
     private final WowInstance instance;
-    private final String accountName;
-    private final String password;
+    private Account account;
 
-    public Reconnect(WowInstance instance, String accountName, String password) {
+
+    public Reconnect(WowInstance instance, Account account) {
         this.instance = instance;
-        this.accountName = accountName;
-        this.password = password;
+        this.account = account;
     }
 
     public boolean isDisconnected() {
@@ -36,13 +37,21 @@ public class Reconnect {
         instance.click(WinKey.ENTER);
         // sleep AFTER typing Enter (to close disconnect message)
         Utils.sleep(5_000);
-        Writer.sendMsg(instance, accountName);
+        for (int i = 0; i < 30; i++) {
+            instance.clickEditing(WinKey.BACKSPACE);
+        }
+        Utils.sleep(5_000);
+        Writer.sendMsg(instance, account.getAccountName());
         // sleep after typing account name
         Utils.sleep(5_000);
         instance.click(WinKey.TAB);
         // sleep after typing TAB
         Utils.sleep(5_000);
-        Writer.sendMsg(instance, password);
+        for (int i = 0; i < 30; i++) {
+            instance.clickEditing(WinKey.BACKSPACE);
+        }
+        Utils.sleep(5_000);
+        Writer.sendMsg(instance, account.getPassword());
         // sleep after typing account password
         Utils.sleep(5_000);
         instance.click(WinKey.ENTER);
@@ -52,5 +61,13 @@ public class Reconnect {
         // download world
         Utils.sleep(60_000);
         logger.info("reconnect finished");
+    }
+
+    public void checkAndReconnect() {
+        if (isDisconnected()) {
+            logger.info("was disconnect");
+            Utils.sleep(SLEEP_AFTER_DISCONNECT);
+            reconnect();
+        }
     }
 }

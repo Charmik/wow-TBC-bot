@@ -1,5 +1,16 @@
 package auction;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+
 import auction.analyzer.Analyzer;
 import auction.dao.FilesManager;
 import bgbot.Movement;
@@ -16,13 +27,6 @@ import wow.memory.ObjectManager;
 import wow.memory.objects.AuctionManager;
 import wow.memory.objects.Player;
 import wow.memory.objects.UnitObject;
-
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.text.ParseException;
-import java.util.*;
 
 /**
  * @author alexlovkov
@@ -49,7 +53,7 @@ public class Buyer {
     private boolean firstIteration;
     private AuctionManager auctionManager;
     private GlobalGraph graph;
-    private int analyzeCount;
+    private int analyzeFails;
 
     public Buyer(boolean scanOnlyFirstPage, String folder, Analyzer analyzer, FilesManager filesManager) {
         this.folder = folder;
@@ -71,7 +75,7 @@ public class Buyer {
         if (graph != null) {
             this.graph.buildGlobalGraph();
         }
-        this.analyzeCount = 0;
+        this.analyzeFails = 0;
     }
 
     boolean analyze() throws InterruptedException, IOException, ParseException {
@@ -151,15 +155,16 @@ public class Buyer {
 
         if (page < MIN_PAGES) {
             int sleepingTime = 1000 * 60 * 1;
-            logger.warn("found not enough pages, something wrong, found only:{}, sleeping for:{}", page, sleepingTime);
+            analyzeFails++;
+            logger.warn("found not enough pages, something wrong, found only:{}, sleeping for:{} fails:{}", page, sleepingTime, analyzeFails);
             Utils.sleep(sleepingTime);
-            analyzeCount++;
-            if (analyzeCount == 10) {
+
+            if (analyzeFails == 5) {
                 resetAuction();
             }
-            analyzeCount %= 10;
+            analyzeFails %= 5;
         } else {
-            analyzeCount = 0;
+            analyzeFails = 0;
             logger.info("found {} pages for the scan", page);
             resetTmpFile();
             for (Item[] itemsFromCurrentPage : itemsFromAuction) {

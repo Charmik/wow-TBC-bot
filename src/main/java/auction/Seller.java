@@ -6,6 +6,7 @@ import java.util.Map;
 import auction.analyzer.Analyzer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import wow.Reconnect;
 import wow.WowInstance;
 import wow.memory.objects.AuctionManager;
 
@@ -17,17 +18,20 @@ public class Seller {
     private final WowInstance wowInstance;
     private PriceLogger priceLogger;
     private Analyzer analyzer;
+    private final Reconnect reconnect;
 
     public Seller(
         AuctionManager auctionManager,
         WowInstance wowInstance,
         PriceLogger priceLogger,
-        Analyzer analyzer)
+        Analyzer analyzer,
+        Reconnect reconnect)
     {
         this.auctionManager = auctionManager;
         this.wowInstance = wowInstance;
         this.priceLogger = priceLogger;
         this.analyzer = analyzer;
+        this.reconnect = reconnect;
     }
 
     public void sellAllItemsFromBag() {
@@ -35,6 +39,7 @@ public class Seller {
         Map<Integer, Boolean> items = new HashMap<>();
 
         for (int bag = 0; bag < 5; bag++) {
+            reconnect.checkAndReconnect();
             int startSlot = 1;
             if (bag == 0) {
                 // skip water

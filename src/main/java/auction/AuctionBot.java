@@ -3,6 +3,7 @@ package auction;
 import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
+import java.util.Arrays;
 
 import auction.analyzer.Analyzer;
 import auction.dao.FilesManager;
@@ -12,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import telegram.TelegramBot;
 import util.LoggerConfiguration;
 import util.Utils;
+import wow.Reconnect;
 import wow.WowInstance;
 import wow.memory.objects.AuctionManager;
 import wow.memory.objects.Player;
@@ -29,11 +31,16 @@ public class AuctionBot {
     private final TelegramBot telegramBot;
     private final AuctionMovement auctionMovement;
     private final Mailbox mailbox;
+    private final Reconnect reconnect;
 
     private long lastTelegramMessage = 0;
 
-    private AuctionBot(boolean scanOnlyFirstPage) throws IOException {
-        player = wowInstance.getPlayer();
+    private AuctionBot(Reconnect reconnect, boolean scanOnlyFirstPage) throws IOException {
+        this.reconnect = reconnect;
+        if (this.reconnect.isDisconnected()) {
+            this.reconnect.reconnect();
+        }
+        this.player = wowInstance.getPlayer();
         String faction;
         if (player.getFaction().isHorde()) {
             faction = "horde";
@@ -46,48 +53,38 @@ public class AuctionBot {
         PriceLogger priceLogger = new PriceLogger(folder + File.separator + "logPrices.txt");
 
         FilesManager filesManager = new FilesManager(folder);
-        analyzer = new Analyzer(wowInstance, folder, priceLogger, filesManager, scanOnlyFirstPage);
-        analyzer.calculate();
-        buyer = new Buyer(scanOnlyFirstPage, folder, analyzer, filesManager);
+        this.analyzer = new Analyzer(wowInstance, folder, priceLogger, filesManager, scanOnlyFirstPage);
+        this.analyzer.calculate();
+        this.buyer = new Buyer(scanOnlyFirstPage, folder, analyzer, filesManager);
         AuctionManager auctionManager = wowInstance.getAuctionManager();
-        seller = new Seller(auctionManager, wowInstance, priceLogger, analyzer);
-        if (player.getFaction().isHorde()) {
+        this.seller = new Seller(auctionManager, wowInstance, priceLogger, analyzer, reconnect);
+        if (this.player.getFaction().isHorde()) {
 //            telegramBot = new TelegramBot();
-            telegramBot = null;
+            this.telegramBot = null;
         } else {
-            telegramBot = null;
+            this.telegramBot = null;
         }
-        auctionMovement = new AuctionMovement(wowInstance);
-        mailbox = new Mailbox(wowInstance);
+        this.auctionMovement = new AuctionMovement(wowInstance);
+        this.mailbox = new Mailbox(wowInstance);
     }
 
     public static void main(String[] args) throws IOException, ParseException, InterruptedException {
         boolean scanOnlyFirstPage = false;
-        if (args.length > 0) {
-            logger.info("going to scan only first page");
+        logger.info("Started, args:{}", Arrays.toString(args));
+        if (args.length < 2) {
+            logger.info("need 2 or 3 arguments: name password neutral(optional)");
+        }
+        Account account = new Account(args[0], args[1]);
+        if (args.length == 3 && "neutral".equals(args[2])) {
+            logger.info("going to scan only first page for neutral auction");
             scanOnlyFirstPage = true;
         }
-        AuctionBot auctionBot = new AuctionBot(scanOnlyFirstPage);
+
+        Reconnect reconnect = new Reconnect(wowInstance, account);
+        AuctionBot auctionBot = new AuctionBot(reconnect, scanOnlyFirstPage);
         if (scanOnlyFirstPage) {
             auctionBot.runBuyer();
         }
-//        wowInstance.getObjectManager().scanForNew();
-/*
-        for (;;) {
-            wowInstance.getObjectManager().scanForNewUnits();
-            Map<Long, UnitObject> units = wowInstance.getObjectManager().getUnits();
-            units.entrySet().forEach(e -> {
-                Point3D coordinates = e.getValue().getCoordinates();
-                Player player = wowInstance.getPlayer();
-                double distance = player.getCoordinates().distance(coordinates);
-                if (distance < 10) {
-                    System.out.println(distance + " " + e.getValue().getLevel());
-                }
-            });
-            System.out.println("!!!!!!!!!!!!!!!!!");
-            System.out.println("!!!!!!!!!!!!!!!!!");
-        }
-        */
         auctionBot.runBuyerWithSelling();
     }
 
@@ -99,7 +96,7 @@ public class AuctionBot {
         }
     }
 
-    private void runBuyerWithSelling() throws InterruptedException, ParseException, IOException {
+    private void runBuyerWithSelling() {
         /*
         for (;;) {
             auctionMovement.goToMail();
@@ -121,11 +118,14 @@ public class AuctionBot {
 //            auctionMovement.goToMail();
 //            mailbox.getMail();
 //            auctionMovement.goToAuction();
+
+                reconnect.checkAndReconnect();
                 int failed = 0;
 
                 boolean wasSelling = false;
                 for (int i = 0; i < FREQUENCY_FOR_SELLING; i++) {
                     boolean successAnalyze = buyer.analyze();
+                    reconnect.checkAndReconnect();
                     if (successAnalyze && !wasSelling) {
                         logger.info("calculate auction & sell items");
                         analyzer.calculate();
@@ -133,7 +133,7 @@ public class AuctionBot {
                         wasSelling = true;
                     } else {
                         failed++;
-                        logger.error("bot failed to analyze auction at iteration:{}", i);
+                        logger.error("bot failed to analyze auction at iteration:{} failed:{} of {}", i, failed, FREQUENCY_FOR_SELLING);
                     }
                 }
                 if (failed == FREQUENCY_FOR_SELLING) {
