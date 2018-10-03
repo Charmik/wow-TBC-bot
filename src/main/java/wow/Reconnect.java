@@ -4,77 +4,53 @@ import auction.Writer;
 import farmbot.launch.ScheduledLauncher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import util.Utils;
 import winapi.components.WinKey;
 
 public class Reconnect {
 
-    private WowInstance instance = WowInstance.getInstance();
-    private static Logger logger = LoggerFactory.getLogger(ScheduledLauncher.class);
+    private static final Logger logger = LoggerFactory.getLogger(ScheduledLauncher.class);
+    private final WowInstance instance = WowInstance.getInstance();
+    private final String accountName;
+    private final String password;
+
+    public Reconnect(String accountName, String password) {
+        this.accountName = accountName;
+        this.password = password;
+    }
 
     public boolean isDisconnected() {
         return !instance.getPlayer().isInGame();
     }
 
-    public void reconnect(String accountName, String password) {
-        try {
-            Thread.sleep(5_000);
-        } catch (InterruptedException e) {
-            logger.error("Missing sleep before typing Enter (to close disconnect message)");
-            e.printStackTrace();
-        }
+    public void reconnect() {
+        // sleep BEFORE typing Enter (to close disconnect message)
+        Utils.sleep(5_000);
         instance.click(WinKey.ENTER);
-        try {
-            Thread.sleep(5_000);
-        } catch (InterruptedException e) {
-            logger.error("Missing sleep after typing Enter (to close disconnect message)");
-            e.printStackTrace();
-        }
+        // sleep AFTER typing Enter (to close disconnect message)
+        Utils.sleep(5_000);
         Writer.sendMsg(instance, accountName);
-        try {
-            Thread.sleep(20_000);
-        } catch (InterruptedException e) {
-            logger.error("Missing sleep after typing account name");
-            e.printStackTrace();
-        }
+        // sleep after typing account name
+        Utils.sleep(20_000);
         instance.click(WinKey.TAB);
-        try {
-            Thread.sleep(5_000);
-        } catch (InterruptedException e) {
-            logger.error("Missing sleep after typing TAB");
-            e.printStackTrace();
-        }
+        // sleep after typing TAB
+        Utils.sleep(5_000);
         Writer.sendMsg(instance, password);
-        try {
-            Thread.sleep(20_000);
-        } catch (InterruptedException e) {
-            logger.error("Missing sleep after typing account password");
-            e.printStackTrace();
-        }
+        // sleep after typing account password
+        Utils.sleep(20_000);
         instance.click(WinKey.ENTER);
-        try {
-            Thread.sleep(20_000);
-        } catch (InterruptedException e) {
-            logger.error("Missing sleep after typing Enter");
-            e.printStackTrace();
-        }
+        // sleep after typing Enter
+        Utils.sleep(20_000);
         instance.click(WinKey.ENTER);
-        try {
-            Thread.sleep(5_000);
-        } catch (InterruptedException e) {
-            logger.error("Missing sleep after typing Enter (pick account player)");
-            e.printStackTrace();
-        }
-        try {
-            Thread.sleep(30_000);
-        } catch (InterruptedException e) {
-            logger.error("Missing loading sleep");
-            e.printStackTrace();
-        }
+        // sleep after typing Enter (pick account player)
+        Utils.sleep(5_000);
+        // loading sleep
+        Utils.sleep(30_000);
     }
 
     public static void main(String[] args) {
-        Reconnect rec = new Reconnect();
+        Reconnect rec = new Reconnect("YourAccountName", "YourPassword");
         if (rec.isDisconnected())
-            rec.reconnect("YourAccountName", "YourPassword");
+            rec.reconnect();
     }
 }
