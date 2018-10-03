@@ -18,7 +18,7 @@ public class Navigation {
     private static float NEAR_COORDS_DIFFERENCE = 2.0f;
     private static float NEAR_COORDS_DIFFERENCE_MOB = 8.0f;
     private static float NEAR_COORDS_DIFFERENCE_MOB_WITF_FF = 16.0f;
-    private static float NEAR_COORDS_DIFFERENCE_AS_CASTER = 900;
+    private static float NEAR_COORDS_DIFFERENCE_AS_CASTER = 25 * 25;
     private static float IS_MOB_NEAR = 40.0f;
     private static float IS_NEAR_TO_POINT = 4f;
 
