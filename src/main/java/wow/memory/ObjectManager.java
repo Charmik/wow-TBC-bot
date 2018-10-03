@@ -2,10 +2,10 @@ package wow.memory;
 
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -21,9 +21,7 @@ import wow.memory.objects.UnitObject;
 import static wow.components.Navigation.Coordinates2D;
 import static wow.components.Navigation.evaluateDistanceFromTo;
 import static wow.components.Navigation.get2DCoordsFor;
-import static wow.memory.ObjectManager.ObjectType.*;
-import static wow.memory.ObjectManager.ObjectType.ITEM;
-import static wow.memory.ObjectManager.ObjectType.OBJECT;
+import static wow.memory.ObjectManager.ObjectType.CONTAINER;
 import static wow.memory.ObjectManager.ObjectType.PLAYER;
 import static wow.memory.ObjectManager.ObjectType.UNIT;
 
@@ -48,8 +46,8 @@ public final class ObjectManager extends MemoryAware {
         super.setBaseAddress(getObjectManagerAddress());
 
         this.wowMemory = wowMemory;
-        this.players = new ConcurrentHashMap<>();
-        this.units = new ConcurrentHashMap<>();
+        this.players = new HashMap<>();
+        this.units = new HashMap<>();
     }
 
     private long getObjectManagerAddress() {
@@ -67,23 +65,27 @@ public final class ObjectManager extends MemoryAware {
 
     public void refillPlayers() {
         //log.info("refillPlayers");
-        if (!players.isEmpty())
+        if (!players.isEmpty()) {
             players.clear();
+        }
         scanForNewPlayers();
     }
 
     public void refillUnits() {
         //log.info("refillUnits in the memory, EXPENSIVE OPERATION!!!!");
-        if (!units.isEmpty())
+        if (!units.isEmpty()) {
             units.clear();
+        }
         scanForNewUnits();
     }
 
     public void refillObjects() {
-        if (!players.isEmpty())
+        if (!players.isEmpty()) {
             players.clear();
-        if (!units.isEmpty())
+        }
+        if (!units.isEmpty()) {
             units.clear();
+        }
         scanForNewObjects();
     }
 
@@ -300,7 +302,7 @@ public final class ObjectManager extends MemoryAware {
 
         private static ObjectType[] types = ObjectType.values();
 
-        // can be incorrent i
+        // can be incorrect i
         private static ObjectType getType(int i) {
             return types[i];
         }
