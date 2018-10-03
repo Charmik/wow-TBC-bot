@@ -43,8 +43,7 @@ public class Utils {
                 System.err.println("Wanted to sleep for " + millis + " but slept for " + (afterSleep - beforeSleep));
                 sleep(millis - (afterSleep - beforeSleep));
             }
-        } catch (InterruptedException e) {
-            throw new RuntimeException("Exception while sleeping. ", e);
+        } catch (InterruptedException ignore) {
         }
     }
 
