@@ -1,16 +1,5 @@
 package auction;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
-
 import auction.analyzer.Analyzer;
 import auction.dao.FilesManager;
 import bgbot.Movement;
@@ -27,6 +16,13 @@ import wow.memory.ObjectManager;
 import wow.memory.objects.AuctionManager;
 import wow.memory.objects.Player;
 import wow.memory.objects.UnitObject;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.ParseException;
+import java.util.*;
 
 /**
  * @author alexlovkov
@@ -53,6 +49,7 @@ public class Buyer {
     private boolean firstIteration;
     private AuctionManager auctionManager;
     private GlobalGraph graph;
+    private int analyzeCount;
 
     public Buyer(boolean scanOnlyFirstPage, String folder, Analyzer analyzer, FilesManager filesManager) {
         this.folder = folder;
@@ -74,6 +71,7 @@ public class Buyer {
         if (graph != null) {
             this.graph.buildGlobalGraph();
         }
+        this.analyzeCount = 0;
     }
 
     boolean analyze() throws InterruptedException, IOException, ParseException {
@@ -152,11 +150,16 @@ public class Buyer {
         }
 
         if (page < MIN_PAGES) {
-            int sleepingTime = 1000 * 60 * 5;
+            int sleepingTime = 1000 * 60 * 1;
             logger.warn("found not enough pages, something wrong, found only:{}, sleeping for:{}", page, sleepingTime);
             Utils.sleep(sleepingTime);
-            resetAuction();
+            analyzeCount++;
+            if (analyzeCount == 10) {
+                resetAuction();
+            }
+            analyzeCount %= 10;
         } else {
+            analyzeCount = 0;
             logger.info("found {} pages for the scan", page);
             resetTmpFile();
             for (Item[] itemsFromCurrentPage : itemsFromAuction) {
@@ -168,6 +171,32 @@ public class Buyer {
             filesManager.addToDataBase(folder, tmpFile);
         }
         return page;
+    }
+
+    /**
+     * return count of the pages on the auction.
+     *
+     * @return number of pages
+     */
+    private int getPageCount() {
+        wowInstance.click(WinKey.D5);
+        Utils.sleep(1000);
+        int page;
+        for (page = 1; page <= MAX_PAGES; page++) {
+            Utils.sleep(1000);
+            Item[] itemsFromCurrentPage = auctionManager.getItemsFromCurrentPageWithRetry();
+            if (itemsFromCurrentPage == null) {
+                break;
+            }
+            Item[] secondRead = auctionManager.getItemsFromCurrentPage();
+            if (secondRead == null) {
+                break;
+            }
+            Utils.sleep(3000);
+            auctionManager.nextPage();
+            Utils.sleep(3000);
+        }
+        return page - 1;
     }
 
     private boolean analazeOnlyFirstPage() throws IOException {
