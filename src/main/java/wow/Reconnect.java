@@ -11,7 +11,7 @@ import winapi.components.WinKey;
 public class Reconnect {
 
     private static final Logger logger = LoggerFactory.getLogger(ScheduledLauncher.class);
-    private static final long SLEEP_AFTER_DISCONNECT = 1000 * 60 * 1;
+    private static final long SLEEP_AFTER_DISCONNECT = 1000 * 60 * 15;
 
     private final WowInstance instance;
     private Account account;
