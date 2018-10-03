@@ -26,7 +26,10 @@ public class Reconnect {
     }
 
     public void reconnect() {
-        logger.info("trying to reconnect inGame:{}", instance.getPlayer().isInGame());
+        if (!isDisconnected()) {
+            logger.error("we tried to reconnect, but we are in the game");
+        }
+        logger.info("trying to reconnect");
         // sleep BEFORE typing Enter (to close disconnect message)
         Utils.sleep(5_000);
         instance.click(WinKey.ENTER);
