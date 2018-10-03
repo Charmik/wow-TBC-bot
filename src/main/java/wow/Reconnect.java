@@ -28,6 +28,7 @@ public class Reconnect {
     public void reconnect() {
         if (!isDisconnected()) {
             logger.error("we tried to reconnect, but we are in the game");
+            return;
         }
         logger.info("trying to reconnect");
         // sleep BEFORE typing Enter (to close disconnect message)
