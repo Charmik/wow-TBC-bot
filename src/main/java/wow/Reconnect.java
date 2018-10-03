@@ -10,11 +10,13 @@ import winapi.components.WinKey;
 public class Reconnect {
 
     private static final Logger logger = LoggerFactory.getLogger(ScheduledLauncher.class);
-    private final WowInstance instance = WowInstance.getInstance();
+
+    private final WowInstance instance;
     private final String accountName;
     private final String password;
 
-    public Reconnect(String accountName, String password) {
+    public Reconnect(WowInstance instance, String accountName, String password) {
+        this.instance = instance;
         this.accountName = accountName;
         this.password = password;
     }
@@ -24,6 +26,7 @@ public class Reconnect {
     }
 
     public void reconnect() {
+        logger.info("trying to reconnect inGame:{}", instance.getPlayer().isInGame());
         // sleep BEFORE typing Enter (to close disconnect message)
         Utils.sleep(5_000);
         instance.click(WinKey.ENTER);
@@ -31,26 +34,19 @@ public class Reconnect {
         Utils.sleep(5_000);
         Writer.sendMsg(instance, accountName);
         // sleep after typing account name
-        Utils.sleep(20_000);
+        Utils.sleep(5_000);
         instance.click(WinKey.TAB);
         // sleep after typing TAB
         Utils.sleep(5_000);
         Writer.sendMsg(instance, password);
         // sleep after typing account password
-        Utils.sleep(20_000);
-        instance.click(WinKey.ENTER);
-        // sleep after typing Enter
-        Utils.sleep(20_000);
-        instance.click(WinKey.ENTER);
-        // sleep after typing Enter (pick account player)
         Utils.sleep(5_000);
-        // loading sleep
+        instance.click(WinKey.ENTER);
+        // download character
         Utils.sleep(30_000);
-    }
-
-    public static void main(String[] args) {
-        Reconnect rec = new Reconnect("YourAccountName", "YourPassword");
-        if (rec.isDisconnected())
-            rec.reconnect();
+        instance.click(WinKey.ENTER);
+        // download world
+        Utils.sleep(60_000);
+        logger.info("reconnect finished");
     }
 }
