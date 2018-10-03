@@ -71,7 +71,7 @@ task fatJarBuyBot(type: Jar) {
                 'Implementation-Version': version,
                 'Main-Class': 'auction.AuctionBot'
     }
-    baseName = 'auction-bot';
+    baseName = 'auction-bot'
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
     exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
     with jar
@@ -83,7 +83,7 @@ task fatJarHealBot(type: Jar) {
                 'Implementation-Version': version,
                 'Main-Class': 'healbot.HealBot'
     }
-    baseName = 'healBot';
+    baseName = 'healBot'
     doFirst {
         from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
     }
