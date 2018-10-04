@@ -105,7 +105,6 @@ public class AuctionBot {
             buyer.resetAuction();
         }
         */
-
         long now = System.currentTimeMillis();
         if (now - lastTelegramMessage > 1000 * 60 * 30) {
             if (telegramBot != null) {
@@ -135,14 +134,17 @@ public class AuctionBot {
                         failed++;
                         logger.error("bot failed to analyze auction at iteration:{} failed:{} of {}", i, failed, FREQUENCY_FOR_SELLING);
                     }
+
+                    if (failed % 10 == 0 && failed != 0) {
+                        auctionMovement.goToAuction();
+                        buyer.resetAuction();
+                    }
                 }
                 if (failed == FREQUENCY_FOR_SELLING) {
                     if (telegramBot != null) {
                         telegramBot.sendMessageToCharm("bot didn't find auction " + failed + " times, " +
                                 "faction:" + player.getFaction().getFactionName() + " check it");
                     }
-                    //buyer.resetAuction();
-                    buyer.resetOnFirstPage();
                     int sleepTime = 1000 * 60 * 5;
                     logger.info("sleep:{}, because we failed:{} times to analyze full auction", sleepTime, failed);
                     Utils.sleep(sleepTime);
