@@ -8,6 +8,7 @@ import farmbot.Pathing.Graph;
 import javafx.geometry.Point3D;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import util.Utils;
 import wow.WowInstance;
 import wow.memory.objects.Player;
 
@@ -22,6 +23,7 @@ public class AuctionMovement {
     private static final Point3D THUNDER_BLUFF_AUCTION = new Point3D(-1210.8663, 95.01946, 134.33122);
 
     private final Movement movement;
+    private final WowInstance wowInstance;
     private final Player player;
     private final GlobalGraph globalGraph = new GlobalGraph("routesAuc");
     private final Point3D mailboxCoordinates;
@@ -29,6 +31,7 @@ public class AuctionMovement {
 
     public AuctionMovement(WowInstance wowInstance) {
         this.movement = new Movement(wowInstance.getPlayer(), wowInstance.getCtmManager(), wowInstance, wowInstance.getObjectManager());
+        this.wowInstance = wowInstance;
         globalGraph.buildGlobalGraph();
         player = wowInstance.getPlayer();
         if (player.getFaction().isAlliance()) {
@@ -56,5 +59,11 @@ public class AuctionMovement {
         for (Graph.Vertex vertex : path) {
             movement.goToNextPoint(vertex.coordinates);
         }
+        Utils.sleep(2000);
+        Point3D lastPoint = path.get(path.size() - 1).getCoordinates();
+        wowInstance.getCtmManager().moveTo(lastPoint);
+        Utils.sleep(3000);
+        wowInstance.getCtmManager().stop();
+        Utils.sleep(1000);
     }
 }
