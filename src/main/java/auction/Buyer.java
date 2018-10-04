@@ -336,14 +336,23 @@ public class Buyer {
             Optional<UnitObject> nearestUnitTo = objectManager.getNearestUnitTo(this.player);
             if (nearestUnitTo.isPresent()) {
                 UnitObject unitObject = nearestUnitTo.get();
+                logger.info("auctioneer was found, his level:{}", unitObject.getLevel());
+                this.player.target(unitObject);
+                Utils.sleep(1000);
+                ctmManager.face(unitObject);
+                Utils.sleep(1000);
+                ctmManager.goTo(unitObject);
+                Utils.sleep(3000);
                 this.ctmManager.interactNpc(unitObject);
-                Utils.sleep(1000L);
+                Utils.sleep(1000);
+                wowInstance.click(WinKey.W);
+                Utils.sleep(1000);
                 this.ctmManager.interactNpc(unitObject);
-                Utils.sleep(100L);
+                Utils.sleep(100);
                 wowInstance.click(WinKey.W);
                 Utils.sleep(100);
                 wowInstance.click(WinKey.S, 52);
-                Utils.sleep(1000L);
+                Utils.sleep(1000);
                 wowInstance.click(WinKey.D2);
             } else {
                 logger.error("auc wasn't found");
