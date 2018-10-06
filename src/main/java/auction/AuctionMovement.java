@@ -66,4 +66,9 @@ public class AuctionMovement {
         wowInstance.getCtmManager().stop();
         Utils.sleep(1000);
     }
+
+    public boolean farAwayFromAuction() {
+        double distance = auctionCoordinates.distance(player.getCoordinates());
+        return distance > 5;
+    }
 }
