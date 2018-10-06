@@ -39,7 +39,6 @@ public class Seller {
         Map<Integer, Boolean> items = new HashMap<>();
 
         for (int bag = 0; bag < 5; bag++) {
-            reconnect.checkAndReconnect();
             int startSlot = 1;
             if (bag == 0) {
                 // skip water
@@ -55,6 +54,7 @@ public class Seller {
             }
             for (int slot = startSlot; slot <= maxSlots; slot++) {
                 try {
+                    reconnect.checkAndReconnect();
                     int itemId = auctionManager.getItemId(wowInstance, bag, slot);
                     // TODO: delete
                     if (itemId == 34837) {
@@ -118,6 +118,7 @@ public class Seller {
                         }
                         items.put(itemId, true);
                         logger.info("sell item bag:{} slot:{} priceForSelling:{}", bag, slot, priceForSelling);
+                        reconnect.checkAndReconnect();
                         Writer.sellItem(wowInstance, bag, slot, priceForSelling);
                     }
                 } catch (ItemNotFoundException ignore) {
