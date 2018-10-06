@@ -209,9 +209,15 @@ public final class ObjectManager extends MemoryAware {
 
     public Optional<UnitObject> getNearestUnitTo(Player player) {
         Coordinates2D playerCoordinates = get2DCoordsFor(player);
-        return Optional.ofNullable(units.values().stream()
-            .min(Comparator.comparingDouble(unit -> evaluateDistanceFromTo(playerCoordinates, unit)))
-            .orElse(null));
+        return units.values().stream()
+            .min(Comparator.comparingDouble(unit -> evaluateDistanceFromTo(playerCoordinates, unit)));
+    }
+
+    public Optional<UnitObject> getNearestAuctioneer(Player player) {
+        Coordinates2D playerCoordinates = get2DCoordsFor(player);
+        return units.values().stream()
+            .filter(e -> e.getLevel() == 50 && e.getMana() == 0 && e.getTargetGuid() == 0 && e.getHealth() == 100)
+            .min(Comparator.comparingDouble(unit -> evaluateDistanceFromTo(playerCoordinates, unit)));
     }
 
     public Optional<UnitObject> getNearestEnemyMob(
