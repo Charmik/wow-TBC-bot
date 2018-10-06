@@ -4,8 +4,6 @@ import java.awt.geom.Point2D.Double;
 import java.util.Optional;
 
 import javafx.geometry.Point3D;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import wow.components.CharacterMovementState;
 import wow.components.CharacterState;
 import wow.components.Faction;
@@ -46,7 +44,6 @@ public final class Player extends MemoryAware {
     private static final Address DESCRIPTORS_OFFSET;
     private static final Address CHAR_COMBAT_STATE_DESCRIPTOR;
     private static final Address FACTION_DESCRIPTOR;
-    private static Logger log = LoggerFactory.getLogger(Player.class);
 
     static {
         CHAR_BASE_POINTER = STATIC.CHAR_BASE_POINTER;
