@@ -10,6 +10,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import auction.analyzer.Analyzer;
 import auction.dao.FilesManager;
@@ -41,6 +42,7 @@ public class Buyer {
 
     private static final WowInstance wowInstance = WowInstance.getInstance();
     private final String folder;
+    private final AuctionMovement auctionMovement;
     private final FilesManager filesManager;
     private final Analyzer analyzer;
     private final ObjectManager objectManager;
@@ -54,9 +56,11 @@ public class Buyer {
     private AuctionManager auctionManager;
     private GlobalGraph graph;
     private int analyzeFails;
+    private long lastAnalyzeCalculate;
 
-    public Buyer(boolean scanOnlyFirstPage, String folder, Analyzer analyzer, FilesManager filesManager) {
+    public Buyer(boolean scanOnlyFirstPage, String folder, Analyzer analyzer, FilesManager filesManager, AuctionMovement auctionMovement) {
         this.folder = folder;
+        this.auctionMovement = auctionMovement;
         this.player = wowInstance.getPlayer();
         this.analyzer = analyzer;
         this.ctmManager = wowInstance.getCtmManager();
@@ -76,6 +80,7 @@ public class Buyer {
             this.graph.buildGlobalGraph();
         }
         this.analyzeFails = 0;
+        this.lastAnalyzeCalculate = 0;
     }
 
     boolean analyze() throws InterruptedException, IOException, ParseException {
@@ -88,7 +93,12 @@ public class Buyer {
 
     private boolean analyzeFullAuction() throws IOException, ParseException, InterruptedException {
         logger.info("analyzeFullAuction");
-        analyzer.calculate();
+        long now = System.currentTimeMillis();
+        // don't update auction too often
+        if (now - this.lastAnalyzeCalculate > TimeUnit.MINUTES.toMillis(30)) {
+            analyzer.calculate();
+            this.lastAnalyzeCalculate = now;
+        }
         resetOnFirstPage();
         this.auctionManager = wowInstance.getAuctionManager();
         Utils.sleep(SLEEP2);
@@ -151,6 +161,11 @@ public class Buyer {
             Thread.sleep(SLEEP1);
             auctionManager.nextPage();
             Thread.sleep(SLEEP2);
+        }
+
+        if (auctionMovement.farAwayFromAuction()) {
+            logger.info("player is too far away from auction, coordinates:{}", player.getCoordinates());
+            return page;
         }
 
         if (page < MIN_PAGES) {
@@ -333,7 +348,9 @@ public class Buyer {
             wowInstance.click(WinKey.D1);
             Utils.sleep(6000);
             objectManager.refillUnits();
-            Optional<UnitObject> nearestUnitTo = objectManager.getNearestUnitTo(this.player);
+            // TODO: take by GUID if stay the same || .filter (lvl = 50) (check neutral auc level)
+
+            Optional<UnitObject> nearestUnitTo = objectManager.getNearestAuctioneer(this.player);
             if (nearestUnitTo.isPresent()) {
                 UnitObject unitObject = nearestUnitTo.get();
                 logger.info("auctioneer was found, his level:{}", unitObject.getLevel());
