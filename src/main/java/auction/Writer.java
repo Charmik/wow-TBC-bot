@@ -1,10 +1,10 @@
 package auction;
 
+import java.util.List;
+
 import util.Utils;
 import winapi.components.WinKey;
 import wow.WowInstance;
-
-import java.util.List;
 
 public class Writer {
 
@@ -33,7 +33,7 @@ public class Writer {
     }
 
     public static void useMacroForGettingItemId(WowInstance wowInstance, int bag, int slot) {
-        Utils.sleep(2000);
+        Utils.sleep(500);
         wowInstance.click(WinKey.ENTER);
         wowInstance.clickEditing(WinKey.SLASH);
         wowInstance.clickEditing(WinKey.c);
@@ -46,7 +46,7 @@ public class Writer {
         wowInstance.clickEditing(WinKey.SPACEBAR);
         Writer.sendMsg(wowInstance, slot);
         wowInstance.click(WinKey.ENTER);
-        Utils.sleep(2000);
+        Utils.sleep(500);
     }
 
     static public void sellItem(WowInstance wowInstance, int bag, int slot, int price) {
@@ -105,9 +105,14 @@ public class Writer {
     }
 
     public static void sendMsg(WowInstance wowInstance, String message) {
+        sendMsg(wowInstance, message, 0);
+    }
+
+    public static void sendMsg(WowInstance wowInstance, String message, long msSleep) {
         List<WinKey> winKeys = WinKey.mapStringToWinkeys(message);
         for (WinKey winKey : winKeys) {
             wowInstance.clickEditing(winKey);
+            Utils.sleep(msSleep);
         }
     }
 
