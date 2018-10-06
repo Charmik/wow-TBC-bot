@@ -172,7 +172,7 @@ public class FilesManager {
         Date date;
         int index;
 
-        public LastFile(Date date, int index) {
+        LastFile(Date date, int index) {
             this.index = index;
             this.date = date;
         }
