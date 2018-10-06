@@ -55,7 +55,8 @@ public class AuctionBot {
         FilesManager filesManager = new FilesManager(folder);
         this.analyzer = new Analyzer(wowInstance, folder, priceLogger, filesManager, scanOnlyFirstPage);
         this.analyzer.calculate();
-        this.buyer = new Buyer(scanOnlyFirstPage, folder, analyzer, filesManager);
+        this.auctionMovement = new AuctionMovement(wowInstance);
+        this.buyer = new Buyer(scanOnlyFirstPage, folder, analyzer, filesManager, auctionMovement);
         AuctionManager auctionManager = wowInstance.getAuctionManager();
         this.seller = new Seller(auctionManager, wowInstance, priceLogger, analyzer, reconnect);
         if (this.player.getFaction().isHorde()) {
@@ -64,7 +65,7 @@ public class AuctionBot {
         } else {
             this.telegramBot = null;
         }
-        this.auctionMovement = new AuctionMovement(wowInstance);
+
         this.mailbox = new Mailbox(wowInstance);
     }
 
