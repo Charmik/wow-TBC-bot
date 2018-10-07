@@ -20,7 +20,7 @@ import auction.Scan;
 import auction.Writer;
 import auction.dao.BidManager;
 import auction.dao.FilesManager;
-import javafx.util.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import wow.WowInstance;
@@ -40,7 +40,7 @@ public class Analyzer {
     private Map<Integer, List<Item>> currentItemsOnAuction = new HashMap<>();
 
     private int profit = 50000;
-    private static final double BUYOUT_PERCENT = 0.70;
+    private static final double BUYOUT_PERCENT = 0.80;
     private static final int REMOVE_ITEMS_PERCENT = 2;
 
     public Analyzer(
@@ -60,10 +60,10 @@ public class Analyzer {
     }
 
     public static void main(String[] args) throws IOException {
-        String path = "history_auction/alliance";
+        String path = "history_auction/horde";
         Analyzer analyzer = new Analyzer(null, path, null, new FilesManager(path), false);
         analyzer.calculate();
-        Statistic statistic = analyzer.itemIdToStatistics.get(22451);
+        Statistic statistic = analyzer.itemIdToStatistics.get(17203);
         System.out.println(statistic);
     }
 
@@ -219,9 +219,9 @@ public class Analyzer {
             buyType = BuyType.BID;
         }
         if (profit < this.profit) {
-            return new Pair<>(BuyType.NONE, 0);
+            return Pair.of(BuyType.NONE, 0);
         }
-        return new Pair<>(buyType, profit);
+        return Pair.of(buyType, profit);
     }
 
     private Map<Integer, Statistic> getMapWithStatistics(Set<Item> allItems) {

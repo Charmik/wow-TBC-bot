@@ -7,12 +7,12 @@ import java.util.Optional;
 import java.util.Set;
 
 import farmbot.Pathing.Graph;
-import javafx.geometry.Point3D;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.Utils;
 import winapi.components.WinKey;
 import wow.WowInstance;
+import wow.components.Coordinates;
 import wow.memory.CtmManager;
 import wow.memory.ObjectManager;
 import wow.memory.objects.CreatureObject;
@@ -48,7 +48,7 @@ public class Fighter {
     }
 
     void kill(
-        Point3D nextPoint,
+        Coordinates nextPoint,
         UnitObject target)
     {
         logger.info("findNearestMobAndAttack started");
@@ -57,27 +57,30 @@ public class Fighter {
     }
 
     private void kill(
-        Point3D nextPoint,
+        Coordinates nextPoint,
         Fighter.State state)
     {
         healer.heal(state.getTarget());
         wowInstance.click(WinKey.D3);
         int initUnitMana = state.getTarget().getMana();
         boolean wentAsMeele = false;
-        if (state.updateTargetHealth() != 0) {
+        //if (state.updateTargetHealth() != 0) {
             int cnt = -1;
             Set<UnitObject> unitsForLoot = new HashSet<>();
             int prevHealth = -1;
             int countNotSuccesGoToMob = 0;
             state.updateInCombat();
+            state.updatePlayerTarget();
+            state.updateTargetHealth();
             for (; state.getTargetHealth() > 90 || state.isInCombat() || state.getTargetHealth() > 0; Utils.sleep(10L)) {
                 ++cnt;
                 state.updateInCombat();
                 if (state.isInCombat()
                     && !state.target.isTargetingMe()) {
-                    logger.info("exit from kill, because another mob attacked me");
-                    ctmManager.stop();
-                    break;
+//                    logger.info("exit from kill, because another mob attacked me");
+//                    ctmManager.stop();
+//                    logger.info("break1");
+//                    break;
                 }
                 //it means mob casting something, maybe he is away from us
                 //if (state.getTarget().getMana() < initUnitMana && !wentAsMeele) {
@@ -148,7 +151,7 @@ public class Fighter {
             if (!player.isDead()) {
                 Looter.getLoot(unitsForLoot);
             }
-        }
+        //}
     }
 
     private void findNextMobInFight(Fighter.State state) {
@@ -164,7 +167,7 @@ public class Fighter {
     }
 
     public void killListOfMobs(List<UnitObject> enemies) {
-        Point3D nearestPointToPlayer = graph.getNearestPointTo(player).getKey();
+        Coordinates nearestPointToPlayer = graph.getNearestPointTo(player).getKey();
         int healthPercent = player.getHealthPercent();
         int manaPercent = player.getManaPercent();
         logger.info("killListOfMobs, my Health is:" + healthPercent + " mana:" + manaPercent);

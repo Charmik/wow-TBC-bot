@@ -3,14 +3,13 @@ package farmbot;
 import java.util.List;
 import java.util.Random;
 
-import javafx.geometry.Point3D;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.Utils;
 import winapi.components.WinKey;
 import wow.WowInstance;
+import wow.components.Coordinates;
 import wow.components.Navigation;
-import wow.components.Navigation.Coordinates3D;
 import wow.memory.CtmManager;
 import wow.memory.objects.Player;
 import wow.memory.objects.UnitObject;
@@ -25,7 +24,7 @@ public class Movement {
     private final WowInstance wowInstance;
     private final Fighter fighter;
     private TargetManager targetManager;
-    private Point3D corpseCoordinate;
+    private Coordinates corpseCoordinate;
 
     Movement(
         Player player,
@@ -45,9 +44,9 @@ public class Movement {
         this.corpseCoordinate = null;
     }
 
-    public boolean goToNextPoint(Point3D nextPoint) {
+    public boolean goToNextPoint(Coordinates nextPoint) {
         int count = 0;
-        while (!Navigation.isNear(new Coordinates3D(player.getX(), player.getY(), player.getZ()), nextPoint)) {
+        while (!Navigation.isNear(new Coordinates(player.getX(), player.getY(), player.getZ()), nextPoint)) {
             ++count;
             if (System.currentTimeMillis() - healer.getTimeLastHeal() >= 6000L) {
                 healer.regenMana();
@@ -137,7 +136,7 @@ public class Movement {
         }
     }
 
-    public Point3D getCorpseCoordinate() {
+    public Coordinates getCorpseCoordinate() {
         return corpseCoordinate;
     }
 

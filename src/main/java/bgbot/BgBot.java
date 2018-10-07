@@ -1,24 +1,28 @@
 package bgbot;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Random;
+import java.util.stream.Collectors;
+
 import farmbot.Pathing.GlobalGraph;
 import farmbot.Pathing.Graph;
 import healbot.HealBot;
-import javafx.geometry.Point3D;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.Utils;
 import winapi.components.WinKey;
 import wow.WowInstance;
+import wow.components.Coordinates;
 import wow.components.Navigation;
 import wow.memory.CtmManager;
 import wow.memory.ObjectManager;
 import wow.memory.objects.Player;
 import wow.memory.objects.PlayerObject;
 import wow.memory.objects.UnitObject;
-
-import java.io.File;
-import java.util.*;
-import java.util.stream.Collectors;
 
 public class BgBot {
 
@@ -41,7 +45,7 @@ public class BgBot {
     private bgbot.Movement movement;
     private GlobalGraph globalGraph = new GlobalGraph("routesBG" + File.separator + "EYE");
     //private GlobalGraph globalGraph = new GlobalGraph(PATHS);
-    private Point3D lastPoint;
+    private Coordinates lastPoint;
     private long lastTimestamp;
     private int globalCount = -1;
     private final int HORDE_AV_BOSS = -1320;
@@ -59,7 +63,7 @@ public class BgBot {
         this.healBot = new HealBot();
         this.movement = new Movement(player, ctmManager, wowInstance, objectManager);
 
-        this.lastPoint = new Point3D(0, 0, 0);
+        this.lastPoint = new Coordinates(0, 0, 0);
         this.lastTimestamp = 0;
         this.startBgTimestamp = 0;
     }
@@ -103,7 +107,7 @@ public class BgBot {
     }
 
     private void goRandomPointOnBg() {
-        Point3D randomPointFromGraph = globalGraph.getRandomPointFromGraph();
+        Coordinates randomPointFromGraph = globalGraph.getRandomPointFromGraph();
         // random always goes to horde base
         if (player.getZone().isAlterac()) {
             while (randomPointFromGraph.getX() > player.getX()) {
@@ -111,7 +115,7 @@ public class BgBot {
             }
             log.info("got random point:{} player coordinastes:{}", randomPointFromGraph, player.getCoordinates());
         }
-        Point3D destination = getMiddlePlayersPoint(randomPointFromGraph);
+        Coordinates destination = getMiddlePlayersPoint(randomPointFromGraph);
 
         boolean isRandomPoint = false;
         if (destination.equals(randomPointFromGraph)) {
@@ -165,7 +169,7 @@ public class BgBot {
                         " prev:" + lastPoint + " playerSize:" + size);
                 lastTimestamp = System.currentTimeMillis();
                 if (player.getCoordinates().equals(lastPoint) && size <= 3) {
-                    Point3D coordinates = player.getCoordinates().add(5, 5, 5);
+                    Coordinates coordinates = player.getCoordinates().add(5, 5, 5);
                     //boolean success = movement.goToNextPoint(coordinates);
                     //if (!success) {
                     log.info("we were stuck in one place more than 1 minute, sleeping...");
@@ -281,7 +285,7 @@ public class BgBot {
     }
 
     // TODO: take first group who is near to player with players > 3
-    private Point3D getMiddlePlayersPoint(Point3D randomPoint) {
+    private Coordinates getMiddlePlayersPoint(Coordinates randomPoint) {
         objectManager.refillPlayers();
         List<PlayerObject> ally = objectManager.getPlayers().entrySet()
                 .stream()
@@ -289,7 +293,7 @@ public class BgBot {
                 .filter(e -> e.getFaction().isAlliance())
                 .filter(e -> !e.isDead())
                 .collect(Collectors.toList());
-        Point3D coordinates = new Point3D(0, 0, 0);
+        Coordinates coordinates = new Coordinates(0, 0, 0);
         int size = ally.size();
         boolean[][] near = new boolean[size][size];
         for (int i = 0; i < ally.size(); i++) {
@@ -324,11 +328,11 @@ public class BgBot {
         ally = biggestCluster;
         size = ally.size();
         for (PlayerObject player : ally) {
-            coordinates = new Point3D(coordinates.getX() + player.getX(), coordinates.getY() + player.getY(), coordinates.getZ() + player.getZ());
+            coordinates = new Coordinates(coordinates.getX() + player.getX(), coordinates.getY() + player.getY(), coordinates.getZ() + player.getZ());
         }
         log.info("we found {} ally, their coordinates:\n{}", ally.size(), ally.stream().map(e -> e.getCoordinates() + "\n").toArray());
         log.info("sizePlayer=" + size);
-        coordinates = new Point3D(coordinates.getX() / size, coordinates.getY() / size, coordinates.getZ() / size);
+        coordinates = new Coordinates(coordinates.getX() / size, coordinates.getY() / size, coordinates.getZ() / size);
 
         if (player.getZone().isAlterac() && size < 4) {
             log.info("didn't find group or players, so go to random point:{}", randomPoint);
@@ -436,9 +440,9 @@ public class BgBot {
     /*
     public void setNearestPath(
         Player player,
-        List<Navigation.Coordinates3D> points)
+        List<Navigation.Coordinates> points)
     {
-        Navigation.Coordinates3D playerCoordinates = Navigation.get3DCoordsFor(player);
+        Navigation.Coordinates playerCoordinates = Navigation.get3DCoordsFor(player);
         double min = Navigation.evaluateDistanceFromTo(points.get(0), playerCoordinates);
         int index = 0;
 

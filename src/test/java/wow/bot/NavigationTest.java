@@ -2,7 +2,7 @@ package wow.bot;
 
 import java.util.Optional;
 
-import javafx.geometry.Point3D;
+import javafx.geometry.Coordinates;
 import org.junit.Ignore;
 import org.junit.Test;
 import util.Utils;
@@ -12,7 +12,6 @@ import wow.memory.objects.CreatureObject;
 
 import static wow.components.Navigation.areNear;
 import static wow.components.Navigation.areNearAsCaster;
-import static wow.components.Navigation.evaluateDistanceFromTo;
 import static wow.components.Navigation.get2DCoordsFor;
 
 /**
@@ -36,9 +35,9 @@ public class NavigationTest extends BaseTest {
     public void testDistance() {
         Optional<CreatureObject> target = player.getTarget();
         target.ifPresent(ctmManager::moveTo);
-        Navigation.Coordinates2D initial = get2DCoordsFor(player);
+        Navigation.Coordinates3D initial = get2DCoordsFor(player);
         Utils.sleep(500);
-        Navigation.Coordinates2D current = get2DCoordsFor(player);
+        Navigation.Coordinates3D current = get2DCoordsFor(player);
         double v = evaluateDistanceFromTo(initial, current);
         System.out.println(v);
         ctmManager.stop();
@@ -49,7 +48,7 @@ public class NavigationTest extends BaseTest {
     public void testDistanceCast() {
         Optional<CreatureObject> target = player.getTarget();
         for (; ; ) {
-            Navigation.Coordinates2D initial = get2DCoordsFor(player);
+            Navigation.Coordinates3D initial = get2DCoordsFor(player);
             target.ifPresent(creatureObject -> areNearAsCaster(initial, creatureObject));
             Utils.sleep(100);
         }
@@ -67,11 +66,11 @@ public class NavigationTest extends BaseTest {
     @Ignore
     @Test
     public void goToPoint() {
-        Point3D p1 = new Point3D(2523.686, 1596.5973, 1269.3445);
-        Point3D p2 = new Point3D(2445.8625, 1596.8517, 1199.2115);
+        Coordinates p1 = new Coordinates(2523.686, 1596.5973, 1269.3445);
+        Coordinates p2 = new Coordinates(2445.8625, 1596.8517, 1199.2115);
         System.out.println(p1.distance(p2));
         for (; ; ) {
-            ctmManager.moveTo(new Point3D(2046.6353, 1647.0458, 1170.6542));
+            ctmManager.moveTo(new Coordinates(2046.6353, 1647.0458, 1170.6542));
         }
     }
 }

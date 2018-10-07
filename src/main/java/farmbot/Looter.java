@@ -4,12 +4,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Set;
 
-import javafx.geometry.Point3D;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.Utils;
 import winapi.components.WinKey;
 import wow.WowInstance;
+import wow.components.Coordinates;
 import wow.memory.CtmManager;
 import wow.memory.objects.Player;
 import wow.memory.objects.UnitObject;
@@ -70,7 +70,7 @@ public class Looter {
     //TODO: move to Movement
     public static boolean goTo(
         UnitObject unitObject,
-        Point3D nextPoint,
+        Coordinates nextPoint,
         boolean goToAsMelee)
     {
         if (player.getLevel() < 20) {

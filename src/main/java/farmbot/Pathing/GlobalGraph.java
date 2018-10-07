@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import javafx.geometry.Point3D;
-import javafx.util.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import wow.components.Coordinates;
 import wow.memory.objects.CreatureObject;
 import wow.memory.objects.Player;
 
@@ -43,8 +43,8 @@ public class GlobalGraph {
 
     private void substractPoint(Path path) {
         for (int i = 0; i < path.getPoints().size(); i++) {
-            Point3D point3D = path.getPoints().get(i);
-            Point3D subtract = point3D.subtract(-5538.576, -3498.06, -51.020306);
+            Coordinates Coordinates = path.getPoints().get(i);
+            Coordinates subtract = Coordinates.subtract(-5538.576f, -3498.06f, -51.020306f);
             path.getPoints().set(i, subtract);
         }
     }
@@ -58,29 +58,29 @@ public class GlobalGraph {
         graph.dijkstra();
     }
 
-    public Pair<Point3D, Double> getNearestPointTo(Point3D point) {
+    public Pair<Coordinates, Double> getNearestPointTo(Coordinates point) {
         return graph.getNearestPointTo(point);
     }
 
     public List<Graph.Vertex> getShortestPath(
-        Point3D start,
-        Point3D finish)
+        Coordinates start,
+        Coordinates finish)
     {
         return graph.getShortestPath(start, finish);
     }
 
     public List<Graph.Vertex> getShortestPathFromPlayerToPoint(
         Player player,
-        Point3D finish)
+        Coordinates finish)
     {
         return graph.getShortestPathFromPlayerToPoint(player, finish);
     }
 
-    public Pair<Point3D, Double> getNearestPointTo(CreatureObject unit) {
+    public Pair<Coordinates, Double> getNearestPointTo(CreatureObject unit) {
         return graph.getNearestPointTo(unit);
     }
 
-    public Point3D getRandomPointFromGraph() {
+    public Coordinates getRandomPointFromGraph() {
         Random random = new Random();
         return graph.getVertices().get(random.nextInt(graph.getVertices().size())).coordinates;
     }

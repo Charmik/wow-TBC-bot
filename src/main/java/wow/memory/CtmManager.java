@@ -2,21 +2,18 @@ package wow.memory;
 
 import java.util.Objects;
 
-import javafx.geometry.Point3D;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.Utils;
 import wow.WowInstance;
+import wow.components.Coordinates;
 import wow.components.Navigation;
 import wow.memory.objects.Player;
 import wow.memory.objects.WowObject;
 
-import static wow.components.Navigation.Coordinates2D;
-import static wow.components.Navigation.Coordinates3D;
 import static wow.components.Navigation.areNear;
 import static wow.components.Navigation.areNearAsCaster;
 import static wow.components.Navigation.evaluateDistanceFromTo;
-import static wow.components.Navigation.get2DCoordsFor;
 import static wow.components.Navigation.get3DCoordsFor;
 import static wow.components.Navigation.isNear;
 import static wow.memory.CtmManager.CtmAction.ATTACK;
@@ -75,11 +72,11 @@ public final class CtmManager extends MemoryAware {
     public boolean goTo(
             WowObject object,
             WowInstance wowInstance,
-            Point3D nextPoint,
+            Coordinates nextPoint,
             int level,
             boolean goToAsMelee) {
         int stuckCounter = 0;
-        Coordinates2D initialPosition = Navigation.get2DCoordsFor(this.player);
+        Coordinates initialPosition = Navigation.get3DCoordsFor(this.player);
         while (!Navigation.areNear(initialPosition, object, level, goToAsMelee)) {
             moveTo(object);
             if (nextPoint != null) {
@@ -94,13 +91,13 @@ public final class CtmManager extends MemoryAware {
                 return false;
             }
             Utils.sleep(100L);
-            if (this.isStuck(initialPosition, Navigation.get2DCoordsFor(this.player)) && stuckCounter++ >= 25) {
+            if (this.isStuck(initialPosition, Navigation.get3DCoordsFor(this.player)) && stuckCounter++ >= 25) {
                 this.incrementAndCheckStuckCounter();
                 this.stop();
                 return false;
             }
 
-            initialPosition = Navigation.get2DCoordsFor(this.player);
+            initialPosition = Navigation.get3DCoordsFor(this.player);
         }
         stop();
         return true;
@@ -110,7 +107,7 @@ public final class CtmManager extends MemoryAware {
             WowObject object,
             WowInstance wowInstance) {
         int stuckCounter = 0;
-        Coordinates2D initialPosition = get2DCoordsFor(player);
+        Coordinates initialPosition = get3DCoordsFor(player);
         moveTo(object);
         while (!areNear(initialPosition, object)) { // check every second
             // TODO: fix, broke not bg movement (farmBot)
@@ -125,22 +122,22 @@ public final class CtmManager extends MemoryAware {
             moveTo(object);
             Utils.sleep(goToIterationCheck);
             //log.info("goto(object) stuckCounter=" + stuckCounter + " maxStuckWaitCounter=" + maxStuckWaitCounter);
-            if (isStuck(initialPosition, get2DCoordsFor(player))) {
+            if (isStuck(initialPosition, get3DCoordsFor(player))) {
                 if (stuckCounter++ >= maxStuckWaitCounter) {
                     incrementAndCheckStuckCounter();
                     stop();
                     return false;
                 }
             }
-            initialPosition = get2DCoordsFor(player);
+            initialPosition = get3DCoordsFor(player);
         }
         return true;
     }
 
-    public boolean goTo(Point3D point, boolean stopIfCombat) { // TODO [beresnev]: Use char movement state to see if he's running
+    public boolean goTo(Coordinates point, boolean stopIfCombat) { // TODO [beresnev]: Use char movement state to see if he's running
         int stuckCounter = 0;
-        Coordinates2D initialPosition = get2DCoordsFor(player);
-        Coordinates3D initialPosition3D = get3DCoordsFor(player);
+        Coordinates initialPosition = get3DCoordsFor(player);
+        Coordinates initialPosition3D = get3DCoordsFor(player);
         while (!isNear(initialPosition3D, point)) { // check every second
             if (stopIfCombat && player.isInCombat()) {
                 // true, because we dont need do unstuck if we met red-mob
@@ -155,14 +152,14 @@ public final class CtmManager extends MemoryAware {
             moveTo(point);
             Utils.sleep(goToIterationCheck);
             //log.info("goto(Point) stuckCounter=" + stuckCounter + " maxStuckWaitCounter=" + maxStuckWaitCounter);
-            if (isStuck(initialPosition, get2DCoordsFor(player))) {
+            if (isStuck(initialPosition, get3DCoordsFor(player))) {
                 if (stuckCounter++ >= maxStuckWaitCounter) {
                     incrementAndCheckStuckCounter();
                     stop();
                     return false;
                 }
             }
-            initialPosition = get2DCoordsFor(player);
+            initialPosition = get3DCoordsFor(player);
             initialPosition3D = get3DCoordsFor(player);
         }
         return true;
@@ -171,7 +168,7 @@ public final class CtmManager extends MemoryAware {
     //TOOD: copy-paste from goTo, make 1 method with general areNearMethod and distance
     public boolean goToAsCaster(WowObject object) { // TODO [beresnev]: Use char movement state to see if he's running
         int stuckCounter = 0;
-        Coordinates2D initialPosition = get2DCoordsFor(player);
+        Coordinates initialPosition = get3DCoordsFor(player);
         while (!areNearAsCaster(initialPosition, object)) {
 
             if (player.isDead()) {
@@ -179,14 +176,14 @@ public final class CtmManager extends MemoryAware {
             }
             moveTo(object);
             Utils.sleep(goToIterationCheck);
-            if (isStuck(initialPosition, get2DCoordsFor(player))) {
+            if (isStuck(initialPosition, get3DCoordsFor(player))) {
                 if (stuckCounter++ >= maxStuckWaitCounter) {
                     incrementAndCheckStuckCounter();
                     stop();
                     return false;
                 }
             }
-            initialPosition = get2DCoordsFor(player);
+            initialPosition = get3DCoordsFor(player);
             if (player.isInCombat()) {
                 return false;
             }
@@ -199,11 +196,11 @@ public final class CtmManager extends MemoryAware {
      * The character actually moves ~47 "tiles" (lets call it that) per second, but we're looking
      * at the the value below that to compensate for small obstacles that you can get through
      *
-     * @see Navigation#evaluateDistanceFromTo(Coordinates2D, Coordinates2D)
+     * @see Navigation#evaluateDistanceFromTo(Coordinates, Coordinates)
      */
     private boolean isStuck(
-            Coordinates2D initialPosition,
-            Coordinates2D currentPosition) {
+            Coordinates initialPosition,
+            Coordinates currentPosition) {
         double distanceRun = evaluateDistanceFromTo(initialPosition, currentPosition);
         return distanceRun < allowedDistancePerGotoIteration;
     }
@@ -225,7 +222,7 @@ public final class CtmManager extends MemoryAware {
         moveTo(object.getX(), object.getY(), object.getZ(), object.getGuid());
     }
 
-    public void moveTo(Point3D point) {
+    public void moveTo(Coordinates point) {
         moveTo(point.getX(), point.getY(), point.getZ());
     }
 

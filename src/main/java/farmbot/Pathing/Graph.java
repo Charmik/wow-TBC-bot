@@ -8,11 +8,11 @@ import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.Random;
 
-import javafx.geometry.Point3D;
-import javafx.util.Pair;
 import net.sf.javaml.core.kdtree.KDTree;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import wow.components.Coordinates;
 import wow.components.Navigation;
 import wow.memory.objects.CreatureObject;
 import wow.memory.objects.Player;
@@ -29,25 +29,25 @@ public class Graph {
     }
 
     public boolean mobIsNearToTheGraph(CreatureObject unitObject) {
-        Pair<Point3D, Double> nearestPointTo = getNearestPointTo(unitObject);
+        Pair<Coordinates, Double> nearestPointTo = getNearestPointTo(unitObject);
         return nearestPointTo != null && nearestPointTo.getValue() < 400.0D;
     }
 
-    public Pair<Point3D, Double> getNearestPointTo(Player player) {
-        return getNearestPointTo(new Point3D((double) player.getX(), (double) player.getY(), (double) player.getZ()));
+    public Pair<Coordinates, Double> getNearestPointTo(Player player) {
+        return getNearestPointTo(new Coordinates(player.getX(), player.getY(), player.getZ()));
     }
 
-    public Pair<Point3D, Double> getNearestPointTo(CreatureObject unit) {
-        return getNearestPointTo(new Point3D((double) unit.getX(), (double) unit.getY(), (double) unit.getZ()));
+    public Pair<Coordinates, Double> getNearestPointTo(CreatureObject unit) {
+        return getNearestPointTo(new Coordinates(unit.getX(), unit.getY(), unit.getZ()));
     }
 
-    public Pair<Point3D, Double> getNearestPointTo(Point3D unitPoint) {
+    public Pair<Coordinates, Double> getNearestPointTo(Coordinates unitPoint) {
         Pair<Vertex, Double> nearestPointTo = getNearestPointTo(unitPoint, vertices);
-        return new Pair<>(nearestPointTo.getKey().coordinates, nearestPointTo.getValue());
+        return Pair.of(nearestPointTo.getKey().coordinates, nearestPointTo.getValue());
     }
 
     private Pair<Vertex, Double> getNearestPointTo(
-        Point3D unitPoint,
+        Coordinates unitPoint,
         List<Vertex> vertices)
     {
         logger.debug("getNearestPointTo input=" + unitPoint);
@@ -60,7 +60,7 @@ public class Graph {
                 returnVertex = v;
             }
         }
-        return new Pair<>(returnVertex, min);
+        return Pair.of(returnVertex,min);
     }
 
     public void clear() {
@@ -241,9 +241,9 @@ public class Graph {
 
     void normalize() {
         Vertex v0 = vertices.get(0);
-        double x0 = v0.coordinates.getX();
-        double y0 = v0.coordinates.getY();
-        double z0 = v0.coordinates.getZ();
+        float x0 = v0.coordinates.getX();
+        float y0 = v0.coordinates.getY();
+        float z0 = v0.coordinates.getZ();
         for (Vertex v : vertices) {
             v.coordinates = v.coordinates.subtract(x0, y0, z0);
         }
@@ -339,11 +339,11 @@ public class Graph {
     }
 
     public List<Vertex> getShortestPath(
-        Point3D start,
-        Point3D finish)
+        Coordinates start,
+        Coordinates finish)
     {
-        Point3D startInGraph = getNearestPointTo(start).getKey();
-        Point3D finishInGraph = getNearestPointTo(finish).getKey();
+        Coordinates startInGraph = getNearestPointTo(start).getKey();
+        Coordinates finishInGraph = getNearestPointTo(finish).getKey();
         Optional<Vertex> startVertex = vertices.stream().filter((v) -> v.coordinates.equals(startInGraph)).findAny();
         Optional<Vertex> finishVertex = vertices.stream().filter((v) -> v.coordinates.equals(finishInGraph)).findAny();
         //logger.info(" start {}, finish{}", start, finish);
@@ -357,7 +357,7 @@ public class Graph {
 
     public List<Vertex> getShortestPathFromPlayerToPoint(
         Player player,
-        Point3D finish)
+        Coordinates finish)
     {
         //  logger.info("player.getCoordinates()=" + player.getCoordinates());
         return getShortestPath(getNearestPointTo(player).getKey(), finish);
@@ -365,14 +365,14 @@ public class Graph {
 
     public static class Vertex {
 
-        public Point3D coordinates;
+        public Coordinates coordinates;
         public int index;
         public List<Vertex> neighbors;
         public boolean visit;
         public String fileName;
 
         public Vertex(
-            Point3D coordinates,
+            Coordinates coordinates,
             int index,
             String fileName)
         {
@@ -383,12 +383,12 @@ public class Graph {
             this.fileName = fileName;
         }
 
-        public Vertex(Point3D coordinates)
+        public Vertex(Coordinates coordinates)
         {
             this(coordinates, -1, null);
         }
 
-        public Point3D getCoordinates() {
+        public Coordinates getCoordinates() {
             return coordinates;
         }
 
@@ -445,7 +445,7 @@ public class Graph {
         return list;
     }
 
-    public Point3D getRandomCoordinates() {
+    public Coordinates getRandomCoordinates() {
         int index = Math.abs(random.nextInt(vertices.size()));
         return vertices.get(index).coordinates;
     }
@@ -453,8 +453,9 @@ public class Graph {
     public List<Vertex> getVertices() {
         return vertices;
     }
-
+    
     private class QItem implements Comparable<QItem> {
+        
         int vertexId;
         double distance;
 

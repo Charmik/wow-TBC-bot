@@ -6,9 +6,9 @@ import java.util.stream.Collectors;
 
 import farmbot.Pathing.GlobalGraph;
 import farmbot.Pathing.Graph;
-import javafx.geometry.Point3D;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import wow.components.Coordinates;
 import wow.components.Navigation;
 import wow.components.UnitReaction;
 import wow.memory.ObjectManager;
@@ -74,7 +74,7 @@ public class TargetManager {
         }
         logger.info("found mobs.size()=" + mobs.size());
         for (UnitObject unit : mobs) {
-            Point3D nearestPointToMob = globalGraph.getNearestPointTo(unit).getKey();
+            Coordinates nearestPointToMob = globalGraph.getNearestPointTo(unit).getKey();
             double distance = nearestPointToMob.distance(unit.getCoordinates());
             if (distance < DISTANCE_FROM_MOB_TO_NEAREST_POINT_IN_GRAPH) {
                 logger.info("distance from nearestPointInGraph to mob is {}, attack", distance);

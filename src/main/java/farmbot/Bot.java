@@ -13,11 +13,11 @@ import farmbot.Pathing.Graph.Vertex;
 import farmbot.Pathing.Path;
 import farmbot.launch.CloseHandler;
 import farmbot.launch.Stopper;
-import javafx.geometry.Point3D;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.Utils;
 import wow.WowInstance;
+import wow.components.Coordinates;
 import wow.components.Navigation;
 import wow.memory.CtmManager;
 import wow.memory.ObjectManager;
@@ -116,7 +116,7 @@ public class Bot {
         UnitObject nearestMobForAttack = targetManager.getNearestMobForAttack();
         healer.regenMana();
         if (nearestMobForAttack != null) {
-            Point3D nearestPointToMob = globalGraph.getNearestPointTo(nearestMobForAttack).getKey();
+            Coordinates nearestPointToMob = globalGraph.getNearestPointTo(nearestMobForAttack).getKey();
             makeRoute(nearestMobForAttack, nearestPointToMob, null);
             player.target(nearestMobForAttack);
             fighter.kill(nearestPointToMob, nearestMobForAttack);
@@ -139,7 +139,7 @@ public class Bot {
 
     //TODO: move somewhere
     private long repairAndSellItems(long lastTimeSell) throws IOException {
-        Point3D nearestPointToPlayer;
+        Coordinates nearestPointToPlayer;
         if (!player.isDead() && farmList.getRepairFileName() != null) {
             logger.info("played is not dead");
             Seller seller = new Seller(
@@ -182,7 +182,7 @@ public class Bot {
     //TODO: move to Movement
     private void goToTheCorpse() {
         logger.info("player is dead, trying to find own corpse");
-        Point3D nearestPointToTroop = globalGraph.getNearestPointTo(movement.getCorpseCoordinate()).getKey();
+        Coordinates nearestPointToTroop = globalGraph.getNearestPointTo(movement.getCorpseCoordinate()).getKey();
         makeRoute(null, nearestPointToTroop, movement.getCorpseCoordinate());
         if (!player.isDead()) {
             movement.resetCorpseCoordinate();
@@ -197,7 +197,7 @@ public class Bot {
             && farmList.getNextFarmList().getLowLevel() <= player.getLevel()) {
             String fileNameToNextFarmPoint = farmList.getCurrentFileName() + "_" + farmList.getNextFarmList().getCurrentFileName();
             logger.info("fileNameToNextFarmPoint=" + fileNameToNextFarmPoint);
-            Path pathToNextFarmPoint = BotPath.getPathFromFile("routes",fileNameToNextFarmPoint);
+            Path pathToNextFarmPoint = BotPath.getPathFromFile("routes", fileNameToNextFarmPoint);
             makeCircle(pathToNextFarmPoint);
             farmList = farmList.getNextFarmList();
             updateGraph(farmList);
@@ -208,7 +208,7 @@ public class Bot {
     //TODO: move somewhere
     private void goToRandomPoint() {
         logger.error("didn't find any mob near to the graph, try go to random vertex");
-        Point3D finish = graph.getRandomCoordinates();
+        Coordinates finish = graph.getRandomCoordinates();
         makeRoute(null, finish, null);
     }
 
@@ -216,7 +216,7 @@ public class Bot {
     private void updateGraph(FarmList farmList) {
         logger.info("start update Graph");
         graph.clear();
-        graph.buildGraph(BotPath.getPathFromFile("routes",farmList.getCurrentFileName()));
+        graph.buildGraph(BotPath.getPathFromFile("routes", farmList.getCurrentFileName()));
         graph.floyd();
         logger.info("finished update Graph");
     }
@@ -224,8 +224,8 @@ public class Bot {
     //TODO: move to Movemenet
     private void makeRoute(
         UnitObject nearestMobForAttack,
-        Point3D pointToGo,
-        Point3D finishPoint)
+        Coordinates pointToGo,
+        Coordinates finishPoint)
     {
         if ((!farmList.isRunFreely()) || nearestMobForAttack == null) {
             List<Vertex> shortestPath = globalGraph.getShortestPathFromPlayerToPoint(player, pointToGo);
@@ -259,7 +259,7 @@ public class Bot {
     //TODO: move to Movement
     private void makeCircle(Path path) {
         int refillCount = -1;
-        for (Point3D nextPoint : path.getPoints()) {
+        for (Coordinates nextPoint : path.getPoints()) {
             if (random.nextInt(8) == 0) {
                 //wowInstance.click(WinKey.D3);
             }

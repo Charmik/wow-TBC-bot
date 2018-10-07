@@ -17,12 +17,12 @@ import auction.dao.FilesManager;
 import bgbot.Movement;
 import farmbot.Pathing.GlobalGraph;
 import farmbot.Pathing.Graph;
-import javafx.geometry.Point3D;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.Utils;
 import winapi.components.WinKey;
 import wow.WowInstance;
+import wow.components.Coordinates;
 import wow.memory.CtmManager;
 import wow.memory.ObjectManager;
 import wow.memory.objects.AuctionManager;
@@ -254,12 +254,12 @@ public class Buyer {
                     }
                     Utils.sleep(5000);
                     if (graph != null) {
-                        Point3D point;
+                        Coordinates point;
                         // auction points for different locations
                         if (player.getZone().isStranglethornVale()) {
-                            point = new Point3D(-14417.693, 523.9574, 5.014096);
+                            point = new Coordinates(-14417.693f, 523.9574f, 5.014096f);
                         } else if (player.getZone().isWinterspring()) {
-                            point = new Point3D(6772.7534, -4679.1396, 723.76514);
+                            point = new Coordinates(6772.7534f, -4679.1396f, 723.76514f);
                         } else {
                             // TODO: tanaris
                             point = null;

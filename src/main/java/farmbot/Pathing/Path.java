@@ -2,29 +2,29 @@ package farmbot.Pathing;
 
 import java.util.List;
 
-import javafx.geometry.Point3D;
+import wow.components.Coordinates;
 
 /**
  * @author alexlovkov
  */
 public class Path {
 
-    private List<Point3D> points;
+    private List<Coordinates> points;
     private String fileName;
 
     public Path(
-        List<Point3D> points,
+        List<Coordinates> points,
         String fileName)
     {
 //        for (int i = 0; i < points.size(); i++) {
-//            Point3D newPoint = points.get(i).add(new Point3D(0, 1000, 0));
+//            Coordinates newPoint = points.get(i).add(new Coordinates(0, 1000, 0));
             //points.set(i, newPoint);
 //        }
         this.points = points;
         this.fileName = fileName;
     }
 
-    public List<Point3D> getPoints() {
+    public List<Coordinates> getPoints() {
         return points;
     }
 

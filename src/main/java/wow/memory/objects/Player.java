@@ -3,9 +3,9 @@ package wow.memory.objects;
 import java.awt.geom.Point2D.Double;
 import java.util.Optional;
 
-import javafx.geometry.Point3D;
 import wow.components.CharacterMovementState;
 import wow.components.CharacterState;
+import wow.components.Coordinates;
 import wow.components.Faction;
 import wow.components.Navigation;
 import wow.memory.Address;
@@ -236,8 +236,8 @@ public final class Player extends MemoryAware {
         return Navigation.convertCoordinates(zoneId, xWowCoord, yWowCoord);
     }
 
-    public Point3D getCoordinates() {
-        return new Point3D((double) getX(), (double) getY(), (double) getZ());
+    public Coordinates getCoordinates() {
+        return new Coordinates(getX(), getY(), getZ());
     }
 
     public float getX() {

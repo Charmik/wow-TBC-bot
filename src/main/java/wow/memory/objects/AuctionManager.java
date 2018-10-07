@@ -118,6 +118,7 @@ public class AuctionManager extends MemoryAware {
      * return itemId in the bad or -1 if it's empty slot
      */
     public int getItemId(WowInstance wowInstance, int bag, int slot) throws ItemNotFoundException {
+        // TODO: check disconnect
         Writer.useMacroForGettingItemId(wowInstance, 0, 1);
         int waterId = getIdFromString(readString(ITEM_ID_IN_BAG_BY_BAG_ID_AND_SLOT));
         if (waterId == 159) {
@@ -134,7 +135,7 @@ public class AuctionManager extends MemoryAware {
         }
     }
 
-    public int getIdFromString(String s) {
+    private int getIdFromString(String s) {
         return Integer.valueOf(s.substring(0, s.indexOf(':')));
     }
 }

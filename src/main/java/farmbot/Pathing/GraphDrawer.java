@@ -2,13 +2,11 @@ package farmbot.Pathing;
 
 import java.awt.*;
 import java.io.File;
-import java.util.Iterator;
 import java.util.List;
 
 import javax.swing.*;
 
 import farmbot.Pathing.Graph.Vertex;
-import javafx.geometry.Point3D;
 
 public class GraphDrawer extends JComponent {
 

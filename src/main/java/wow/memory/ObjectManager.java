@@ -11,6 +11,7 @@ import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import wow.components.Coordinates;
 import wow.components.Faction;
 import wow.components.UnitReaction;
 import wow.memory.objects.CreatureObject;
@@ -18,9 +19,8 @@ import wow.memory.objects.Player;
 import wow.memory.objects.PlayerObject;
 import wow.memory.objects.UnitObject;
 
-import static wow.components.Navigation.Coordinates2D;
 import static wow.components.Navigation.evaluateDistanceFromTo;
-import static wow.components.Navigation.get2DCoordsFor;
+import static wow.components.Navigation.get3DCoordsFor;
 import static wow.memory.ObjectManager.ObjectType.CONTAINER;
 import static wow.memory.ObjectManager.ObjectType.PLAYER;
 import static wow.memory.ObjectManager.ObjectType.UNIT;
@@ -208,13 +208,13 @@ public final class ObjectManager extends MemoryAware {
     }
 
     public Optional<UnitObject> getNearestUnitTo(Player player) {
-        Coordinates2D playerCoordinates = get2DCoordsFor(player);
+        Coordinates playerCoordinates = get3DCoordsFor(player);
         return units.values().stream()
             .min(Comparator.comparingDouble(unit -> evaluateDistanceFromTo(playerCoordinates, unit)));
     }
 
     public Optional<UnitObject> getNearestAuctioneer(Player player) {
-        Coordinates2D playerCoordinates = get2DCoordsFor(player);
+        Coordinates playerCoordinates = get3DCoordsFor(player);
         return units.values().stream()
             .filter(e -> e.getLevel() == 50 && e.getMana() == 0 && e.getTargetGuid() == 0 && e.getHealth() == 100)
             .min(Comparator.comparingDouble(unit -> evaluateDistanceFromTo(playerCoordinates, unit)));
@@ -231,7 +231,7 @@ public final class ObjectManager extends MemoryAware {
         Player player,
         Stream<UnitObject> mobs)
     {
-        Coordinates2D playerCoordinates = get2DCoordsFor(player);
+        Coordinates playerCoordinates = get3DCoordsFor(player);
         return mobs
             .filter(e -> UnitReaction.getReaction(player.getFaction(), e.getFaction()).canAttack())
             .min(Comparator.comparingDouble(unit -> evaluateDistanceFromTo(playerCoordinates, unit)));
@@ -244,7 +244,7 @@ public final class ObjectManager extends MemoryAware {
     }
 
     public Optional<PlayerObject> getNearestPlayerTo(Player player) {
-        Coordinates2D playerCoordinates = get2DCoordsFor(player);
+        Coordinates playerCoordinates = get3DCoordsFor(player);
         return Optional.ofNullable(players.values().stream()
             .min(Comparator.comparingDouble(unit -> evaluateDistanceFromTo(playerCoordinates, unit)))
             .orElse(null));

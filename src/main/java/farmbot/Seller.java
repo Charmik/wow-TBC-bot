@@ -5,12 +5,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
-import javafx.geometry.Point3D;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.Utils;
 import winapi.components.WinKey;
 import wow.WowInstance;
+import wow.components.Coordinates;
 import wow.memory.CtmManager;
 import wow.memory.ObjectManager;
 import wow.memory.objects.Player;
@@ -18,7 +18,7 @@ import wow.memory.objects.UnitObject;
 
 class Seller {
     private static final Logger log = LoggerFactory.getLogger(Movement.class);
-    private final List<Point3D> path;
+    private final List<Coordinates> path;
     private final Movement movement;
     private final ObjectManager objectManager;
     private final CtmManager ctmManager;
@@ -27,7 +27,7 @@ class Seller {
     private final Healer healer;
 
     Seller(
-        List<Point3D> path,
+        List<Coordinates> path,
         Movement movement,
         ObjectManager objectManager,
         CtmManager ctmManager,
@@ -60,8 +60,8 @@ class Seller {
         Iterator var1 = this.path.iterator();
 
         while (var1.hasNext()) {
-            Point3D point3D = (Point3D) var1.next();
-            this.movement.goToNextPoint(point3D);
+            Coordinates Coordinates = (Coordinates) var1.next();
+            this.movement.goToNextPoint(Coordinates);
         }
 
     }
@@ -101,14 +101,14 @@ class Seller {
         Iterator var1 = this.path.iterator();
 
         while (var1.hasNext()) {
-            Point3D point3D = (Point3D) var1.next();
-            this.movement.goToNextPoint(point3D);
+            Coordinates Coordinates = (Coordinates) var1.next();
+            this.movement.goToNextPoint(Coordinates);
         }
 
         Collections.reverse(this.path);
     }
 
-    public List<Point3D> getPath() {
+    public List<Coordinates> getPath() {
         return this.path;
     }
 }

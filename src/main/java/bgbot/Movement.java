@@ -1,11 +1,11 @@
 package bgbot;
 
-import javafx.geometry.Point3D;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.Utils;
 import winapi.components.WinKey;
 import wow.WowInstance;
+import wow.components.Coordinates;
 import wow.components.Navigation;
 import wow.memory.CtmManager;
 import wow.memory.ObjectManager;
@@ -27,10 +27,10 @@ public class Movement {
         this.objectManager = objectManager;
     }
 
-    public boolean goToNextPoint(Point3D nextPoint) {
+    public boolean goToNextPoint(Coordinates nextPoint) {
         int count = 0;
         Zones.Zone zone = player.getZone();
-        while (!Navigation.isNear(new Navigation.Coordinates3D(player.getX(), player.getY(), player.getZ()), nextPoint)) {
+        while (!Navigation.isNear(new Coordinates(player.getX(), player.getY(), player.getZ()), nextPoint)) {
             // teleported
 //            if (!player.getZone().equals(zone)) {
             /*
@@ -64,7 +64,8 @@ public class Movement {
             }
             */
             if (checkDistance && distance > 300) {
-                log.info("the next point is too far away, break distance:" + distance);
+                log.info("the next point is too far away, break distance:{}, ourPoint:{} nextPoint:{}",
+                        distance, player.getCoordinates(), nextPoint);
                 return false;
             }
             //travel form
