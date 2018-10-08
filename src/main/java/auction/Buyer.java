@@ -156,6 +156,7 @@ public class Buyer {
             }
             if (errorReading > 0) {
                 logger.error("for 1 scan we had reading errors:{} page:{}, errorReading:{}", errorReading, page, errorReading);
+                break;
             }
             itemsFromAuction.add(itemsFromCurrentPage);
             Thread.sleep(SLEEP1);
