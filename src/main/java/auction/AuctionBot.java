@@ -7,10 +7,9 @@ import java.util.Arrays;
 
 import auction.analyzer.Analyzer;
 import auction.dao.FilesManager;
-import farmbot.Bot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import telegram.TelegramBot;
+import telegram.Client;
 import util.LoggerConfiguration;
 import util.Utils;
 import wow.Reconnect;
@@ -20,7 +19,7 @@ import wow.memory.objects.Player;
 
 public class AuctionBot {
 
-    private static final Logger logger = LoggerFactory.getLogger(Bot.class);
+    private static final Logger logger = LoggerFactory.getLogger(AuctionBot.class);
     private static final int FREQUENCY_FOR_SELLING = 50;
 
     private static final WowInstance wowInstance = new WowInstance("World of Warcraft");
@@ -28,15 +27,14 @@ public class AuctionBot {
     private final Buyer buyer;
     private final Seller seller;
     private final Analyzer analyzer;
-    private final TelegramBot telegramBot;
     private final AuctionMovement auctionMovement;
     private final Mailbox mailbox;
     private final Reconnect reconnect;
+    private final Client client;
 
-    private long lastTelegramMessage = 0;
-
-    private AuctionBot(Reconnect reconnect, boolean scanOnlyFirstPage) throws IOException {
-        this.reconnect = reconnect;
+    private AuctionBot(Account account, boolean scanOnlyFirstPage) throws IOException {
+        this.client = new Client();
+        this.reconnect = new Reconnect(wowInstance, account, client);
         if (this.reconnect.isDisconnected()) {
             this.reconnect.reconnect();
         }
@@ -59,13 +57,6 @@ public class AuctionBot {
         this.buyer = new Buyer(scanOnlyFirstPage, folder, analyzer, filesManager, auctionMovement);
         AuctionManager auctionManager = wowInstance.getAuctionManager();
         this.seller = new Seller(auctionManager, wowInstance, priceLogger, analyzer, reconnect);
-        if (this.player.getFaction().isHorde()) {
-//            telegramBot = new TelegramBot();
-            this.telegramBot = null;
-        } else {
-            this.telegramBot = null;
-        }
-
         this.mailbox = new Mailbox(wowInstance);
     }
 
@@ -81,8 +72,7 @@ public class AuctionBot {
             scanOnlyFirstPage = true;
         }
 
-        Reconnect reconnect = new Reconnect(wowInstance, account);
-        AuctionBot auctionBot = new AuctionBot(reconnect, scanOnlyFirstPage);
+        AuctionBot auctionBot = new AuctionBot(account, scanOnlyFirstPage);
         if (scanOnlyFirstPage) {
             auctionBot.runBuyer();
         }
@@ -92,13 +82,13 @@ public class AuctionBot {
     private void runBuyer() throws InterruptedException, ParseException, IOException {
         boolean success = buyer.analyze();
         if (!success) {
-//            telegramBot.sendMessageToShumik("your bot is dead, check it");
             Runtime.getRuntime().exit(0);
         }
     }
 
     private void runBuyerWithSelling() {
         /*
+        testing mail
         for (;;) {
             auctionMovement.goToMail();
             mailbox.getMail();
@@ -106,13 +96,7 @@ public class AuctionBot {
             buyer.resetAuction();
         }
         */
-        long now = System.currentTimeMillis();
-        if (now - lastTelegramMessage > 1000 * 60 * 30) {
-            if (telegramBot != null) {
-                telegramBot.sendMessageToCharm("run bot for faction: " + player.getFaction().getFactionName());
-            }
-            lastTelegramMessage = now;
-        }
+        this.client.sendMessageToCharm("started bot " + player.getAccountName());
         for (; ; ) {
             try {
 //            auctionMovement.goToMail();
@@ -135,19 +119,16 @@ public class AuctionBot {
                         failed++;
                         logger.error("bot failed to analyze auction at iteration:{} failed:{} of {}", i, failed, FREQUENCY_FOR_SELLING);
                     }
-
                     if (failed % 10 == 0 && failed != 0) {
                         auctionMovement.goToAuction();
                         buyer.resetAuction();
                     }
                 }
                 if (failed == FREQUENCY_FOR_SELLING) {
-                    if (telegramBot != null) {
-                        telegramBot.sendMessageToCharm("bot didn't find auction " + failed + " times, " +
-                                "faction:" + player.getFaction().getFactionName() + " check it");
-                    }
                     int sleepTime = 1000 * 60 * 5;
                     logger.info("sleep:{}, because we failed:{} times to analyze full auction", sleepTime, failed);
+                    client.sendMessageToCharm(player.getAccountName() +
+                        " failed to analyze auction " + FREQUENCY_FOR_SELLING + " times");
                     Utils.sleep(sleepTime);
                 }
             } catch (Exception e) {

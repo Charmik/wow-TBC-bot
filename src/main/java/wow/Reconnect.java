@@ -1,27 +1,36 @@
 package wow;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 import auction.Account;
 import auction.Writer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import telegram.Client;
 import util.Utils;
 import winapi.components.WinKey;
 
 public class Reconnect {
 
     private static final Logger logger = LoggerFactory.getLogger(Reconnect.class);
-    private static final long SLEEP_AFTER_DISCONNECT = 1000 * 60 * 15;
+    private static final int SLEEP_AFTER_DISCONNECT = 1000 * 60 * 10;
 
     private final WowInstance instance;
     private final Account account;
+    private final Client client;
 
-    public Reconnect(WowInstance instance, Account account) {
+    public Reconnect(WowInstance instance, Account account, Client client) {
         this.instance = instance;
         this.account = account;
+        this.client = client;
     }
 
     public boolean isDisconnected() {
-        return !instance.getPlayer().isInGame();
+        boolean isDiscon = !instance.getPlayer().isInGame();
+        if (isDiscon) {
+            client.sendMessageToCharm(instance.getPlayer().getAccountName() + " is disconnected");
+        }
+        return isDiscon;
     }
 
     public void reconnect() {
@@ -29,7 +38,9 @@ public class Reconnect {
             logger.error("we tried to reconnect, but we are in the game");
             return;
         }
-        logger.info("trying to reconnect");
+        logger.info("starting to reconnect");
+        client.sendMessageToCharm(instance.getPlayer().getAccountName() + " starting to reconnect");
+        Utils.sleep(30_000);
         // sleep BEFORE typing Enter (to close disconnect message)
         Utils.sleep(5_000);
         instance.click(WinKey.ENTER);
@@ -51,6 +62,7 @@ public class Reconnect {
         // download world
         Utils.sleep(60_000);
         logger.info("reconnect finished");
+        client.sendMessageToCharm(instance.getPlayer().getAccountName() + " reconnected");
     }
 
     private void removeFields() {
@@ -65,6 +77,7 @@ public class Reconnect {
         if (isDisconnected()) {
             logger.info("was disconnect");
             Utils.sleep(SLEEP_AFTER_DISCONNECT);
+            Utils.sleep(ThreadLocalRandom.current().nextInt(SLEEP_AFTER_DISCONNECT));
             reconnect();
         }
     }
