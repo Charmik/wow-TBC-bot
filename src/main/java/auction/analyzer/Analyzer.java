@@ -39,8 +39,8 @@ public class Analyzer {
     private final WowInstance wowInstance;
     private Map<Integer, List<Item>> currentItemsOnAuction = new HashMap<>();
 
-    private int profit = 50000;
-    private static final double BUYOUT_PERCENT = 0.80;
+    private static final double BUYOUT_PERCENT = 0.70;
+    private int profit = 5_00_00;
     private static final int REMOVE_ITEMS_PERCENT = 2;
 
     public Analyzer(
@@ -55,7 +55,7 @@ public class Analyzer {
         this.priceLogger = priceLogger;
         this.filesManager = filesManager;
         if (scanOnlyFirstPage) {
-            profit = 250000;
+            profit = 25_00_00;
         }
     }
 
@@ -96,10 +96,10 @@ public class Analyzer {
         // TODO: delete
         if (item.getItemId() == 34837) {
             logger.info("found the ring, item:{}", item);
-            if (item.getBuyOut() < 70000000) {
+            if (item.getBuyOut() < 7000_00_00) {
                 return new BuyingItem(BuyType.BUYOUT);
             }
-            if (item.getCurrentBid() < 70000000) {
+            if (item.getCurrentBid() < 7000_00_00) {
                 return new BuyingItem(BuyType.BID);
             }
         }
@@ -109,6 +109,15 @@ public class Analyzer {
         }
 
         Statistic statistic = itemIdToStatistics.get(item.getItemId());
+
+        // TODO: delete this if
+        if (item.getItemId() != 34837) {
+            // don't buy too expensive items if you don't have enough statistics
+            if (statistic != null && statistic.getMinBuyOut() > 3000_00_00 && statistic.getCount() < 50) {
+                return new BuyingItem(BuyType.NONE);
+            }
+        }
+
         if (statistic == null || statistic.count < 20) {
             return new BuyingItem(BuyType.NONE);
         }
@@ -120,20 +129,12 @@ public class Analyzer {
             return new BuyingItem(BuyType.NONE);
         }
         //}
-
-        if (buyType.getKey() != BuyType.NONE) {
-            /*
-            logger.info("found item, which we should " + String.format("%-7s", buyType.getKey())
-                + " profit:~ " + String.format("%-8s", buyType.getValue())
-                + "| item: " + item + " | statistics: " + statistic);
-                */
-        }
         return new BuyingItem(index, buyType.getKey());
     }
 
     private boolean uselessItem(Item item) {
         int[] itemsForSkip = {2576, 10036, 4601, 25679, 851};
-        if (item.getItemId() == 38082 && (item.getBuyOut() > 1200 || item.getCurrentBid() > 1200)) {
+        if (item.getItemId() == 38082 && (item.getBuyOut() > 12_00 || item.getCurrentBid() > 12_00)) {
             return false;
         }
         for (int skip : itemsForSkip) {
