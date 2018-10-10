@@ -67,7 +67,7 @@ public class FilesManager {
         return new LastFile(last, index);
     }
 
-    public void addToDataBase(
+    public boolean addToDataBase(
         String folder,
         String filePath) throws IOException, ParseException
     {
@@ -79,7 +79,7 @@ public class FilesManager {
         List<String> strings = Files.readAllLines(Paths.get(filePath));
         if (strings.size() < 10000) {
             logger.info("don't save file because it's size:{}", strings.size());
-            return;
+            return false;
         }
         Date currentDate = df.parse(strings.get(0));
         ZonedDateTime lastZonedDateTime = ZonedDateTime.ofInstant(lastDateFromFiles.toInstant(), ZoneId.systemDefault());
@@ -91,9 +91,11 @@ public class FilesManager {
             File out = new File(folder + File.separator + "auc_" + newIndex + ".txt");
             boolean b = file.renameTo(out);
             logger.info("renamed:{}, file:{} out:{}", b, file.getAbsolutePath(), out.getAbsolutePath());
+            return true;
         } else {
             logger.info("don't save file because difference in time hours:{} lastZonedDateTime:{} currentZonedDateTime:{}",
                 between.toHours(), lastZonedDateTime, currentZonedDateTime);
+            return false;
         }
     }
 
