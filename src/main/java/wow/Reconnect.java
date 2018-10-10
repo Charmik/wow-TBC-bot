@@ -28,7 +28,7 @@ public class Reconnect {
     public boolean isDisconnected() {
         boolean isDiscon = !instance.getPlayer().isInGame();
         if (isDiscon) {
-            client.sendMessageToCharm(instance.getPlayer().getAccountName() + " is disconnected");
+            client.sendPhotoAndMessage(instance.getPlayer().getAccountName() + " is disconnected");
         }
         return isDiscon;
     }
@@ -39,7 +39,7 @@ public class Reconnect {
             return;
         }
         logger.info("starting to reconnect");
-        client.sendMessageToCharm(instance.getPlayer().getAccountName() + " starting to reconnect");
+        client.sendPhotoAndMessage(instance.getPlayer().getAccountName() + " starting to reconnect");
         Utils.sleep(30_000);
         // sleep BEFORE typing Enter (to close disconnect message)
         Utils.sleep(5_000);
@@ -62,7 +62,7 @@ public class Reconnect {
         // download world
         Utils.sleep(60_000);
         logger.info("reconnect finished");
-        client.sendMessageToCharm(instance.getPlayer().getAccountName() + " reconnected");
+        client.sendPhotoAndMessage(instance.getPlayer().getAccountName() + " reconnected");
     }
 
     private void removeFields() {
@@ -75,9 +75,10 @@ public class Reconnect {
 
     public void checkAndReconnect() {
         if (isDisconnected()) {
-            logger.info("was disconnect");
+            int sleepMillis = ThreadLocalRandom.current().nextInt(SLEEP_AFTER_DISCONNECT);
+            logger.info("was disconnect sleep for:{} minutes", (SLEEP_AFTER_DISCONNECT + sleepMillis) / 1000 / 60);
             Utils.sleep(SLEEP_AFTER_DISCONNECT);
-            Utils.sleep(ThreadLocalRandom.current().nextInt(SLEEP_AFTER_DISCONNECT));
+            Utils.sleep(sleepMillis);
             reconnect();
         }
     }
