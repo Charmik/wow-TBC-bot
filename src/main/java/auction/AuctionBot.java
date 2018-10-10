@@ -54,7 +54,7 @@ public class AuctionBot {
         this.analyzer = new Analyzer(wowInstance, folder, priceLogger, filesManager, scanOnlyFirstPage);
         this.analyzer.calculate();
         this.auctionMovement = new AuctionMovement(wowInstance);
-        this.buyer = new Buyer(scanOnlyFirstPage, folder, analyzer, filesManager, auctionMovement);
+        this.buyer = new Buyer(scanOnlyFirstPage, folder, analyzer, filesManager, auctionMovement, reconnect, client);
         AuctionManager auctionManager = wowInstance.getAuctionManager();
         this.seller = new Seller(auctionManager, wowInstance, priceLogger, analyzer, reconnect);
         this.mailbox = new Mailbox(wowInstance);
@@ -96,7 +96,7 @@ public class AuctionBot {
             buyer.resetAuction();
         }
         */
-        this.client.sendMessageToCharm("started bot " + player.getAccountName());
+        this.client.sendPhotoAndMessage("started bot " + player.getAccountName());
         for (; ; ) {
             try {
 //            auctionMovement.goToMail();
@@ -127,7 +127,7 @@ public class AuctionBot {
                 if (failed == FREQUENCY_FOR_SELLING) {
                     int sleepTime = 1000 * 60 * 5;
                     logger.info("sleep:{}, because we failed:{} times to analyze full auction", sleepTime, failed);
-                    client.sendMessageToCharm(player.getAccountName() +
+                    client.sendPhotoAndMessage(player.getAccountName() +
                         " failed to analyze auction " + FREQUENCY_FOR_SELLING + " times");
                     Utils.sleep(sleepTime);
                 }
