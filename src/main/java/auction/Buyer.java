@@ -19,8 +19,10 @@ import farmbot.Pathing.GlobalGraph;
 import farmbot.Pathing.Graph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import telegram.Client;
 import util.Utils;
 import winapi.components.WinKey;
+import wow.Reconnect;
 import wow.WowInstance;
 import wow.components.Coordinates;
 import wow.memory.CtmManager;
@@ -43,6 +45,8 @@ public class Buyer {
     private static final WowInstance wowInstance = WowInstance.getInstance();
     private final String folder;
     private final AuctionMovement auctionMovement;
+    private final Reconnect reconnect;
+    private final Client client;
     private final FilesManager filesManager;
     private final Analyzer analyzer;
     private final ObjectManager objectManager;
@@ -58,9 +62,19 @@ public class Buyer {
     private int analyzeFails;
     private long lastAnalyzeCalculate;
 
-    public Buyer(boolean scanOnlyFirstPage, String folder, Analyzer analyzer, FilesManager filesManager, AuctionMovement auctionMovement) {
+    public Buyer(
+        boolean scanOnlyFirstPage,
+        String folder,
+        Analyzer analyzer,
+        FilesManager filesManager,
+        AuctionMovement auctionMovement,
+        Reconnect reconnect,
+        Client client)
+    {
         this.folder = folder;
         this.auctionMovement = auctionMovement;
+        this.reconnect = reconnect;
+        this.client = client;
         this.player = wowInstance.getPlayer();
         this.analyzer = analyzer;
         this.ctmManager = wowInstance.getCtmManager();
@@ -189,7 +203,10 @@ public class Buyer {
             firstIteration = false;
             historyBufferedWriter.flush();
             historyBufferedWriter.close();
-            filesManager.addToDataBase(folder, tmpFile);
+            boolean savedNewFile = filesManager.addToDataBase(folder, tmpFile);
+            if (savedNewFile) {
+                client.sendMessageToCharm("successfully saved a new file to:" + folder);
+            }
         }
         return page;
     }
@@ -225,20 +242,20 @@ public class Buyer {
         resetOnFirstPage();
         AuctionManager auctionManager = wowInstance.getAuctionManager();
         int count = -1;
-        boolean TEST_FLAG = false;
-        logger.info("TEST_FLAG:" + TEST_FLAG);
         logger.info("calculate auction");
         analyzer.calculate();
         logger.info("started refreshing auction");
         boolean firstRun = true;
         for (; ; ) {
             count++;
-            if (count % 30 == 0) {
+            if (count % 500 == 0) {
+                reconnect.checkAndReconnect();
                 count = 0;
                 boolean isDead = wowInstance.getPlayer().isDead();
                 objectManager.refillPlayers();
                 isDead = isDead | wowInstance.getPlayer().isDead();
                 if (isDead) {
+                    client.sendPhotoAndMessage(player.getAccountName() + " is dead, going to ress");
                     if (!firstRun) {
                         long sleepBeforeRess = 1000 * 60 * 10;
                         logger.info("sleeping for:{}", sleepBeforeRess);
@@ -292,9 +309,10 @@ public class Buyer {
                         wowInstance.click(WinKey.D4);
                         resetAuction();
                         //screen shot
-                        wowInstance.click(WinKey.P);
+                        client.sendPhotoAndMessage(player.getAccountName() + " should be alive health:" + player.getHealthPercent());
                         if (!success) {
                             logger.info("couldn't ress, exit");
+                            client.sendPhotoAndMessage(player.getAccountName() + " couldn't ress, exit");
                             ctmManager.stop();
                             return false;
                         }
@@ -372,6 +390,7 @@ public class Buyer {
                 wowInstance.click(WinKey.S, 52);
                 Utils.sleep(1000);
                 wowInstance.click(WinKey.D2);
+                client.sendPhotoAndMessage(player.getAccountName() + " reseted auction");
             } else {
                 logger.error("auc wasn't found");
             }
