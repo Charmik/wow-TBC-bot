@@ -34,7 +34,7 @@ public class ScheduledLauncher {
     }
 
     public static void main(String[] args) throws InterruptedException, IOException {
-        logger.info("args:{}", args);
+        logger.info("args:{}", (Object) args);
         Thread.sleep(3000);
         //robot.keyPress(KeyEvent.VK_5);
 
