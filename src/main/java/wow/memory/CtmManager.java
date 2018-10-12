@@ -16,13 +16,13 @@ import static wow.components.Navigation.areNearAsCaster;
 import static wow.components.Navigation.evaluateDistanceFromTo;
 import static wow.components.Navigation.get3DCoordsFor;
 import static wow.components.Navigation.isNear;
-import static wow.memory.CtmManager.CtmAction.ATTACK;
-import static wow.memory.CtmManager.CtmAction.FACE_TARGET;
-import static wow.memory.CtmManager.CtmAction.LOOT;
-import static wow.memory.CtmManager.CtmAction.MOVE_AND_INTERACT_NPC;
-import static wow.memory.CtmManager.CtmAction.NOTHING;
-import static wow.memory.CtmManager.CtmAction.SKIN;
-import static wow.memory.CtmManager.CtmAction.WALK;
+import static wow.memory.CtmAction.ATTACK;
+import static wow.memory.CtmAction.FACE_TARGET;
+import static wow.memory.CtmAction.LOOT;
+import static wow.memory.CtmAction.MOVE_AND_INTERACT_NPC;
+import static wow.memory.CtmAction.NOTHING;
+import static wow.memory.CtmAction.SKIN;
+import static wow.memory.CtmAction.WALK;
 
 
 /**
@@ -289,7 +289,7 @@ public final class CtmManager extends MemoryAware {
     public void doAction(CtmAction ctmAction) {
         Objects.requireNonNull(ctmAction);
 
-        writeInt(ctmPush, ctmAction.value);
+        writeInt(ctmPush, ctmAction.getValue());
     }
 
     public void doAction(
@@ -298,7 +298,7 @@ public final class CtmManager extends MemoryAware {
             CtmAction ctmAction) {
         Objects.requireNonNull(mysteryAction);
         Objects.requireNonNull(ctmAction);
-        doAction(guid, (int) mysteryAction.getValue(), ctmAction.value);
+        doAction(guid, (int) mysteryAction.getValue(), ctmAction.getValue());
     }
 
     public void doAction(
@@ -326,29 +326,6 @@ public final class CtmManager extends MemoryAware {
         writeFloat(ctmZ, z);
         writeLong(ctmGuid, guid);
         writeInt(ctmMystery, (int) mysteryAction.getValue());
-        writeInt(ctmPush, ctmAction.value);
-    }
-
-    public enum CtmAction {
-        FACE_TARGET(0x1),
-        STOP(0x3),
-        WALK(0x4),
-        MOVE_AND_INTERACT_NPC(0x5),
-        LOOT(0x6),
-        MOVE_AND_INTERACT_OBJECT(0x7),
-        FACE_OTHER(0x8), // ?
-        SKIN(0x9),
-        ATTACK(0xA),
-        NOTHING(0x13);
-
-        private int value;
-
-        CtmAction(int value) {
-            this.value = value;
-        }
-
-        public int getValue() {
-            return value;
-        }
+        writeInt(ctmPush, ctmAction.getValue());
     }
 }
