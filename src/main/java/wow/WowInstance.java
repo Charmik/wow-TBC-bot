@@ -37,6 +37,10 @@ public final class WowInstance {
         return wowMemory.getPlayer();
     }
 
+    public void updateFields() {
+        wowMemory.updateFields();
+    }
+
     public AuctionManager getAuctionManager() {
         return wowMemory.getAuctionManager();
     }
