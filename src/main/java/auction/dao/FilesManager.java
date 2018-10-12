@@ -190,6 +190,7 @@ public class FilesManager implements AuctionDao {
             historyBufferedWriter.flush();
             historyBufferedWriter.close();
             boolean savedNewFile = addToDataBase(path, tmpFile);
+            logger.info("savedNewFile:{}", savedNewFile);
             if (savedNewFile) {
                 client.sendMessageToCharm("successfully saved a new file to:" +
                     WowInstance.getInstance().getPlayer().getFaction());
@@ -202,6 +203,7 @@ public class FilesManager implements AuctionDao {
     }
 
     private void resetTmpFile() throws IOException {
+        logger.info("reset tmp file");
         historyBufferedWriter = new BufferedWriter(new FileWriter(tmpFile));
         initWrite();
     }
@@ -212,6 +214,7 @@ public class FilesManager implements AuctionDao {
 
     private void writeCurrentAuc(Item[] items) throws IOException {
         for (Item item : items) {
+            // TODO: fast write
             historyBufferedWriter.write(item.toString() + "\n");
         }
     }
