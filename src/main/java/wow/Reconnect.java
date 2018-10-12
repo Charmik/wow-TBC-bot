@@ -62,6 +62,8 @@ public class Reconnect {
         // download world
         Utils.sleep(60_000);
         logger.info("reconnect finished");
+        instance.updateFields();
+        logger.info("player coordinates:{}", instance.getPlayer().getCoordinates());
         client.sendPhotoAndMessage(instance.getPlayer().getAccountName() + " reconnected");
     }
 
