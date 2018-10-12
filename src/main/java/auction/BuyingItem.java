@@ -26,7 +26,7 @@ public class BuyingItem {
         this.buyType = buyType;
     }
 
-    public BuyingItem(BuyType none) {
+    public BuyingItem() {
         index = -1;
         this.buyType = BuyType.NONE;
     }
