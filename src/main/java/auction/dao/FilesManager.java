@@ -11,11 +11,11 @@ import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.StringTokenizer;
 
 import auction.Item;
 import auction.Scan;
@@ -103,9 +103,6 @@ public class FilesManager {
         List<Scan> scans = new ArrayList<>();
         File[] files = new File(path).listFiles();
 
-        List<File> list = Arrays.asList(files).subList(files.length - 15, files.length);
-        files = list.toArray(files);
-
         for (File file : files) {
             if (file == null
                 || "bidHistory.txt".equals(file.getName())
@@ -131,28 +128,30 @@ public class FilesManager {
                     date = df.parse(strings.get(0));
                 } catch (ParseException e) {
                     logger.error("can't parse:" + strings.get(0) + " file:" + file.getAbsolutePath());
-                    //throw e;
                     continue;
                 }
                 ArrayList<Item> items = new ArrayList<>(strings.size() - 2);
                 for (int i = 2; i < strings.size(); i++) {
                     String s = strings.get(i);
                     try {
-                        int[] ints = Arrays.stream(s.split("\\s+")).map(Integer::valueOf).mapToInt(x -> x).toArray();
-                        Item item;
-                        if (ints.length == 8) {
-                            item = new Item(ints[0], ints[1], ints[2], ints[3], ints[4], ints[5], ints[6], ints[7]);
-                        } else if (ints.length == 9) {
-                            item = new Item(ints[0], ints[1], ints[2], ints[3], ints[4], ints[5], ints[6], ints[7], ints[8]);
-                        } else {
-                            if ("tmp.txt".equals(file.getName())) {
-                                logger.info("file is not correct, delete it:{}", file);
-                                file.delete();
-                                continue;
-                            }
-                            throw new IllegalArgumentException("can't parse file: " + file);
+                        //int[] ints = Arrays.stream(s.split("\\s+")).map(Integer::valueOf).mapToInt(x -> x).toArray();
+
+                        try {
+                            StringTokenizer st = new StringTokenizer(s, " ");
+                            int x1 = Integer.parseInt(st.nextToken());
+                            int x2 = Integer.parseInt(st.nextToken());
+                            int x3 = Integer.parseInt(st.nextToken());
+                            int x4 = Integer.parseInt(st.nextToken());
+                            int x5 = Integer.parseInt(st.nextToken());
+                            int x6 = Integer.parseInt(st.nextToken());
+                            int x7 = Integer.parseInt(st.nextToken());
+                            int x8 = Integer.parseInt(st.nextToken());
+                            int x9 = Integer.parseInt(st.nextToken());
+                            Item item = new Item(x1, x2, x3, x4, x5, x6, x7, x8, x9);
+                            items.add(item);
+                        } catch (Throwable t) {
+                            logger.error("couldn't read file:{}", file, t);
                         }
-                        items.add(item);
                     } catch (Throwable e) {
                         logger.info(e.toString() + " file:" + file);
                         throw e;
@@ -166,7 +165,6 @@ public class FilesManager {
         }
         Collections.sort(scans);
         return scans;
-
     }
 
     private class LastFile {
