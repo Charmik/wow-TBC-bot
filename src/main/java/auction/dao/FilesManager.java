@@ -64,13 +64,14 @@ public class FilesManager implements AuctionDao {
         int index = -1;
         for (File file : listFiles()) {
             if (file.getName().startsWith("auc")) {
-                BufferedReader br = new BufferedReader(new FileReader(file));
-                Date date = df.parse(br.readLine());
-                if (last == null || date.compareTo(last) > 0) {
-                    last = date;
-                    String fileName = file.getName().substring(4);
-                    fileName = fileName.substring(0, fileName.indexOf(".txt"));
-                    index = Integer.valueOf(fileName);
+                try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+                    Date date = df.parse(br.readLine());
+                    if (last == null || date.compareTo(last) > 0) {
+                        last = date;
+                        String fileName = file.getName().substring(4);
+                        fileName = fileName.substring(0, fileName.indexOf(".txt"));
+                        index = Integer.parseInt(fileName);
+                    }
                 }
             }
         }
@@ -114,7 +115,9 @@ public class FilesManager implements AuctionDao {
     public List<Scan> getScans() {
         List<Scan> scans = new ArrayList<>();
         File[] files = new File(path).listFiles();
-
+        if (files == null) {
+            return Collections.emptyList();
+        }
         for (File file : files) {
             if (file == null
                 || "bidHistory.txt".equals(file.getName())
@@ -131,7 +134,6 @@ public class FilesManager implements AuctionDao {
             }
             try {
                 List<String> strings = Files.readAllLines(Paths.get(file.getPath()));
-                DateFormat df = new SimpleDateFormat("EEE MMM dd kk:mm:ss z yyyy", Locale.ENGLISH);
                 if (strings.size() < 10000) {
                     continue;
                 }
@@ -219,7 +221,7 @@ public class FilesManager implements AuctionDao {
         }
     }
 
-    private class LastFile {
+    private static class LastFile {
 
         Date date;
         int index;

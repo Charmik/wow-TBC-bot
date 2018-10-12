@@ -1,5 +1,11 @@
 package healbot;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.Utils;
@@ -7,9 +13,11 @@ import winapi.components.WinKey;
 import wow.WowInstance;
 import wow.components.Navigation;
 import wow.memory.ObjectManager;
-import wow.memory.objects.*;
-
-import java.util.*;
+import wow.memory.objects.CreatureObject;
+import wow.memory.objects.Player;
+import wow.memory.objects.PlayerObject;
+import wow.memory.objects.UnitObject;
+import wow.memory.objects.WowObject;
 
 import static wow.components.UnitReaction.FRIENDLY;
 
@@ -405,7 +413,7 @@ public class HealBot {
         return false;
     }
 
-    private class Cast {
+    private static class Cast {
         private final Spell spell;
         private final long timeCast;
 
@@ -417,7 +425,7 @@ public class HealBot {
         }
     }
 
-    private class UpdateSkill {
+    private static class UpdateSkill {
         boolean needUpdateLifebloom;
         boolean needUpdateRejuvenation;
         boolean needUpdateRegrowth;

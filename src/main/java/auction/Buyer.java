@@ -127,18 +127,13 @@ public class Buyer {
             }
             //Utils.sleep(100);
             Item[] secondRead = auctionManager.getItemsFromCurrentPage();
-            if (secondRead == null) {
-                break;
-            }
 
             int errorReading = 0;
             if (!firstIteration) {
                 for (int i = 0; i < itemsFromCurrentPage.length; i++) {
                     Item item = itemsFromCurrentPage[i];
                     BuyingItem buyingItem = analyzer.buyItem(item, i + 1);
-                    if (buyingItem == null) {
-                        break;
-                    }
+
                     Item secondReadItem = secondRead[i];
                     if (!item.compareFields(secondReadItem)) {
                         errorReading++;
@@ -206,9 +201,6 @@ public class Buyer {
                 break;
             }
             Item[] secondRead = auctionManager.getItemsFromCurrentPage();
-            if (secondRead == null) {
-                break;
-            }
             Utils.sleep(3000);
             auctionManager.nextPage();
             Utils.sleep(3000);
@@ -381,19 +373,6 @@ public class Buyer {
         for (int i = 0; i < firstScan.length; i++) {
             if (!firstScan[i].compareFields(secondScan[i])) {
                 return false;
-            }
-        }
-        return true;
-    }
-
-    private boolean validateItems(Item[] itemsFromCurrentPage) {
-        if (itemsFromCurrentPage == null) {
-            return false;
-        }
-        for (Item item : itemsFromCurrentPage) {
-            // not true when you dont have full page of items
-            if (item.getAuctionId() == 0) {
-                //return false;
             }
         }
         return true;

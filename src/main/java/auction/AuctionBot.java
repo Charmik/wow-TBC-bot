@@ -136,7 +136,7 @@ public class AuctionBot {
                     logger.info("sleep:{}, because we failed:{} times to analyze full auction", sleepTime, failed);
                     Utils.sleep(sleepTime);
                 }
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 logger.error("got exception:", e);
             }
         }

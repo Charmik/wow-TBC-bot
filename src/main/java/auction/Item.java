@@ -144,6 +144,9 @@ public class Item implements Comparable<Item> {
     @Override
     // TODO: add more fields?
     public boolean equals(Object o) {
+        if (o == null) {
+            return false;
+        }
         return auctionId == ((Item) o).auctionId;
     }
 

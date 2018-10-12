@@ -453,8 +453,8 @@ public class Graph {
     public List<Vertex> getVertices() {
         return vertices;
     }
-    
-    private class QItem implements Comparable<QItem> {
+
+    private static class QItem implements Comparable<QItem> {
         
         int vertexId;
         double distance;

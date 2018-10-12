@@ -4,6 +4,7 @@ import auction.Buyer;
 import auction.Item;
 import auction.ItemNotFoundException;
 import auction.Writer;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.Utils;
@@ -34,6 +35,7 @@ public class AuctionManager extends MemoryAware {
         this.pointer = readInt(AUCTION_POINTER_TO_ITEMS);
     }
 
+    @Nullable
     public Item[] getItemsFromCurrentPageWithRetry() {
         boolean foundLastPage = false;
         int lastAuctionId = -1;
@@ -135,6 +137,6 @@ public class AuctionManager extends MemoryAware {
     }
 
     private int getIdFromString(String s) {
-        return Integer.valueOf(s.substring(0, s.indexOf(':')));
+        return Integer.parseInt(s.substring(0, s.indexOf(':')));
     }
 }

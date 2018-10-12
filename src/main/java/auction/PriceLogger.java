@@ -45,8 +45,8 @@ public class PriceLogger {
                     logger.error("split length < 16, something saved wrong in history");
                     continue;
                 }
-                int price = Integer.valueOf(split[split.length - 1]);
-                int id = Integer.valueOf(split[split.length - 9]);
+                int price = Integer.parseInt(split[split.length - 1]);
+                int id = Integer.parseInt(split[split.length - 9]);
                 if (itemId == id) {
                     return price;
                 }

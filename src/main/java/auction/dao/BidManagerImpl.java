@@ -49,10 +49,8 @@ public class BidManagerImpl implements BidManager {
         int auctionId,
         int currentBid)
     {
-        try {
-            BufferedWriter bw = new BufferedWriter(new FileWriter(path, true));
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(path, true))) {
             bw.write(auctionId + " " + currentBid + "\n");
-            bw.close();
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
