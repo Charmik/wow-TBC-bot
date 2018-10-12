@@ -107,7 +107,9 @@ public class Seller {
                         }
 
                         if (priceForSelling < lastPriceForItem * 0.95) {
-                            logger.error("we try to sell item cheaper than we bought it, priceForSelling:{}, itemId:{}", priceForSelling, itemId);
+                            logger.error("we try to sell item cheaper than we bought it, " +
+                                    "priceForSelling:{}, lastPriceForItem:{}, itemId:{}",
+                                priceForSelling, lastPriceForItem, itemId);
                             continue;
                         }
                         Boolean sold = items.get(itemId);
