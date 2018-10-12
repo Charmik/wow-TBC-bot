@@ -3,16 +3,23 @@ package auction;
 import java.io.File;
 
 import auction.dao.BidManager;
+import auction.dao.BidManagerImpl;
+import auction.dao.BidManagerStub;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class BidManagerTest {
 
     @Test
-    public void test() {
+    public void testBidManagers() {
         String fileName = "history_auction" + File.separator + "testBidHistory.txt";
-        BidManager bidManager = new BidManager(fileName);
+        BidManager bidManager = new BidManagerImpl(fileName);
+        testBidManager(bidManager);
+        testBidManager(new BidManagerStub());
+        new File(fileName).delete();
+    }
 
+    private void testBidManager(BidManager bidManager) {
         bidManager.saveBid(0, 0);
         bidManager.saveBid(4, 4);
         bidManager.saveBid(2, 2);
@@ -28,9 +35,6 @@ public class BidManagerTest {
 
         Assert.assertTrue(bidManager.shouldBid(2, 3));
         Assert.assertFalse(bidManager.shouldBid(2, 1));
-
-        new File(fileName).delete();
-
     }
 
 }
