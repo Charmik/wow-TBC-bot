@@ -151,8 +151,7 @@ public class Buyer {
                         break;
                     }
                     Item secondReadItem = secondRead[i];
-                    if (item.compareFields(secondReadItem)) {
-                    } else {
+                    if (!item.compareFields(secondReadItem)) {
                         errorReading++;
                         logger.error("read another item prev:{} ,second read:{}", item, secondReadItem);
                     }
@@ -161,9 +160,9 @@ public class Buyer {
                         secondReadItem = auctionManager.getItemsFromCurrentPage()[i];
                         if (item.compareFields(secondReadItem) && analyzer.buyItem(secondReadItem, i + 1).getBuyType() != BuyType.NONE) {
                             analyzer.buyItem(item, buyingItem.getBuyType(), buyingItem.getIndex(), page, true);
-                            logger.info("found item for buying on page:{}", page);
+                            logger.info("bought item:{}", item);
                         } else {
-//                            logger.error("read another item prev:{} ,second read:{}", item, secondReadItem);
+                            logger.error("read another item prev:{} ,second read:{}", item, secondReadItem);
                         }
                     }
                 }
@@ -197,6 +196,7 @@ public class Buyer {
             analyzeFails = 0;
             logger.info("found {} pages for the scan", page);
             resetTmpFile();
+            logger.info("write tmp file with {} items", itemsFromAuction.size());
             for (Item[] itemsFromCurrentPage : itemsFromAuction) {
                 writeCurrentAuc(itemsFromCurrentPage);
             }
@@ -205,7 +205,7 @@ public class Buyer {
             historyBufferedWriter.close();
             boolean savedNewFile = filesManager.addToDataBase(folder, tmpFile);
             if (savedNewFile) {
-                client.sendMessageToCharm("successfully saved a new file to:" + folder);
+                client.sendMessageToCharm("successfully saved a new file to:" + player.getFaction());
             }
         }
         return page;
@@ -405,7 +405,6 @@ public class Buyer {
         historyBufferedWriter = new BufferedWriter(new FileWriter(tmpFile));
         initWrite();
     }
-
 
     private boolean equals(Item[] firstScan, Item[] secondScan) {
         for (int i = 0; i < firstScan.length; i++) {
