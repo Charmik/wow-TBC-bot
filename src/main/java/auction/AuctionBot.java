@@ -6,6 +6,7 @@ import java.text.ParseException;
 import java.util.Arrays;
 
 import auction.analyzer.Analyzer;
+import auction.dao.BidManagerImpl;
 import auction.dao.FilesManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +52,12 @@ public class AuctionBot {
         PriceLogger priceLogger = new PriceLogger(folder + File.separator + "logPrices.txt");
 
         FilesManager filesManager = new FilesManager(folder);
-        this.analyzer = new Analyzer(wowInstance, folder, priceLogger, filesManager, scanOnlyFirstPage);
+        this.analyzer = new Analyzer(
+            wowInstance,
+            new BidManagerImpl(folder + File.separator + "bidHistory.txt"),
+            priceLogger,
+            filesManager,
+            scanOnlyFirstPage);
         this.analyzer.calculate();
         this.auctionMovement = new AuctionMovement(wowInstance);
         this.buyer = new Buyer(scanOnlyFirstPage, folder, analyzer, filesManager, auctionMovement, reconnect, client);
@@ -110,11 +116,9 @@ public class AuctionBot {
                 for (int i = 0; i < FREQUENCY_FOR_SELLING; i++) {
                     boolean successAnalyze = buyer.analyze();
                     reconnect.checkAndReconnect();
-                    if (successAnalyze && !wasSelling) {
+                    if (successAnalyze) {
                         logger.info("calculate auction & sell items");
                         analyzer.calculate();
-                        sellWithRetries(1);
-                        wasSelling = true;
                     } else {
                         failed++;
                         logger.error("bot failed to analyze auction at iteration:{} failed:{} of {}", i, failed, FREQUENCY_FOR_SELLING);
@@ -123,12 +127,16 @@ public class AuctionBot {
                         auctionMovement.goToAuction();
                         buyer.resetAuction();
                     }
+                    if (successAnalyze && !wasSelling) {
+                        sellWithRetries(1);
+                        wasSelling = true;
+                    }
                 }
                 if (failed == FREQUENCY_FOR_SELLING) {
                     int sleepTime = 1000 * 60 * 5;
-                    logger.info("sleep:{}, because we failed:{} times to analyze full auction", sleepTime, failed);
                     client.sendPhotoAndMessage(player.getAccountName() +
                         " failed to analyze auction " + FREQUENCY_FOR_SELLING + " times");
+                    logger.info("sleep:{}, because we failed:{} times to analyze full auction", sleepTime, failed);
                     Utils.sleep(sleepTime);
                 }
             } catch (Exception e) {
