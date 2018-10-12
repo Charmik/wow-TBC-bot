@@ -47,7 +47,6 @@ public class AuctionManager extends MemoryAware {
             //try to force nextPage again, we will miss this page, doesn't matter, bug wow.
             if (countGetPreviousPage % 10000 == 0) {
                 nextPage();
-                logger.warn("press next page because auction seems bugged, sleep");
                 Utils.sleep(Buyer.SLEEP2);
             }
             //found lastPage
