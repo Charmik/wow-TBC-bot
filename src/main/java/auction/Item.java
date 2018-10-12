@@ -1,8 +1,7 @@
 package auction;
 
-import java.util.Objects;
-
 public class Item implements Comparable<Item> {
+
     private int auctionId;
     private int itemId;
     private int count;
@@ -35,20 +34,6 @@ public class Item implements Comparable<Item> {
         this.currentBid = currentBid;
         this.buyOut = buyOut;
         this.expireTime = expireTime;
-    }
-
-    // TODO: delete, it's legacy constructor
-    public Item(
-        int auctionId,
-        int itemId,
-        int count,
-        int usableItem,
-        int playerId,
-        int currentBid,
-        int buyOut,
-        int expireTime)
-    {
-        this(auctionId, itemId, count, usableItem, playerId, 0, currentBid, buyOut, expireTime);
     }
 
     public Item(int[] arr) {
@@ -145,6 +130,10 @@ public class Item implements Comparable<Item> {
         return startBid;
     }
 
+    public void setStartBid(int startBid) {
+        this.startBid = startBid;
+    }
+
     public int getRealCurrentBid() {
         if (currentBid == 0) {
             return startBid;
@@ -153,16 +142,14 @@ public class Item implements Comparable<Item> {
     }
 
     @Override
+    // TODO: add more fields?
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Item item = (Item) o;
-        return auctionId == item.auctionId;
+        return auctionId == ((Item) o).auctionId;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(auctionId);
+        return auctionId;
     }
 
     @Override
@@ -170,7 +157,7 @@ public class Item implements Comparable<Item> {
         return Integer.compare(auctionId, o.auctionId);
     }
 
-    public boolean compareFields(Item o) {
+    boolean compareFields(Item o) {
         return //auctionId == o.auctionId &&
             itemId == o.itemId &&
             count == o.count &&
