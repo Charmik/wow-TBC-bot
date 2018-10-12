@@ -1,6 +1,8 @@
 package auction.dao;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -40,8 +42,7 @@ public class FilesManager {
 
     public static void main(String[] args) throws IOException, ParseException {
         FilesManager filesManager = new FilesManager("history_auction" + File.separator + "alliance");
-        System.out.println(filesManager.getLastDateFromFiles());
-        filesManager.addToDataBase("history_auction" + File.separator + "alliance", "ttt.txt");
+        System.out.println(filesManager.getLastDateFromFiles().date);
     }
 
     public File[] listFiles() {
@@ -53,8 +54,8 @@ public class FilesManager {
         int index = -1;
         for (File file : listFiles()) {
             if (file.getName().startsWith("auc")) {
-                List<String> strings = Files.readAllLines(Paths.get(file.getPath()));
-                Date date = df.parse(strings.get(0));
+                BufferedReader br = new BufferedReader(new FileReader(file));
+                Date date = df.parse(br.readLine());
                 if (last == null || date.compareTo(last) > 0) {
                     last = date;
                     String fileName = file.getName().substring(4);
