@@ -6,10 +6,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import auction.BuyType;
@@ -19,8 +19,10 @@ import auction.PriceLogger;
 import auction.Scan;
 import auction.Writer;
 import auction.dao.BidManager;
+import auction.dao.BidManagerImpl;
 import auction.dao.FilesManager;
 import org.apache.commons.lang3.tuple.Pair;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import wow.WowInstance;
@@ -31,6 +33,10 @@ import wow.WowInstance;
 public class Analyzer {
 
     private static final Logger logger = LoggerFactory.getLogger(Analyzer.class);
+    private static final int ITEMS_TO_SAVE_FOR_ITEM_ID = 1000;
+    private static final int REMOVE_ITEMS_PERCENT = 5;
+    private static final int MIN_COUNT_IN_HISTORY = 50;
+    private static final double BUYOUT_PERCENT = 0.70;
 
     private final BidManager bidManager;
     private final PriceLogger priceLogger;
@@ -39,19 +45,17 @@ public class Analyzer {
     private final WowInstance wowInstance;
     private Map<Integer, List<Item>> currentItemsOnAuction = new HashMap<>();
 
-    private static final double BUYOUT_PERCENT = 0.70;
     private int profit = 5_00_00;
-    private static final int REMOVE_ITEMS_PERCENT = 2;
 
     public Analyzer(
         WowInstance wowInstance,
-        String path,
+        BidManager bidManager,
         PriceLogger priceLogger,
         FilesManager filesManager,
         boolean scanOnlyFirstPage)
     {
         this.wowInstance = wowInstance;
-        this.bidManager = new BidManager(path + File.separator + "bidHistory.txt");
+        this.bidManager = bidManager;
         this.priceLogger = priceLogger;
         this.filesManager = filesManager;
         if (scanOnlyFirstPage) {
@@ -60,11 +64,18 @@ public class Analyzer {
     }
 
     public static void main(String[] args) throws IOException {
-        String path = "history_auction/horde";
-        Analyzer analyzer = new Analyzer(null, path, null, new FilesManager(path), false);
+        long start = System.nanoTime();
+        String folder = "history_auction/horde";
+        Analyzer analyzer = new Analyzer(
+            null,
+            new BidManagerImpl(folder + File.separator + "bidHistory.txt"),
+            null,
+            new FilesManager(folder),
+            false);
         analyzer.calculate();
-        Statistic statistic = analyzer.itemIdToStatistics.get(17203);
+        Statistic statistic = analyzer.itemIdToStatistics.get(21886);
         System.out.println(statistic);
+        System.out.println(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
     }
 
     public int getMinBuyoutByItemId(int itemId) {
@@ -96,16 +107,18 @@ public class Analyzer {
         // TODO: delete
         if (item.getItemId() == 34837) {
             logger.info("found the ring, item:{}", item);
-            if (item.getBuyOut() < 7000_00_00) {
-                return new BuyingItem(BuyType.BUYOUT);
+            if (item.getBuyOut() < 3000_00_00) {
+                logger.info("buyout is:{}, so we are going to buy it", item.getBuyOut());
+                return new BuyingItem(index, BuyType.BUYOUT);
             }
-            if (item.getCurrentBid() < 7000_00_00) {
-                return new BuyingItem(BuyType.BID);
+            if (item.getCurrentBid() < 3000_00_00) {
+                logger.info("bid is:{}, so we are going to buy it", item.getCurrentBid());
+                return new BuyingItem(index, BuyType.BID);
             }
         }
 
         if (uselessItem(item)) {
-            return new BuyingItem(BuyType.NONE);
+            return new BuyingItem();
         }
 
         Statistic statistic = itemIdToStatistics.get(item.getItemId());
@@ -114,19 +127,19 @@ public class Analyzer {
         if (item.getItemId() != 34837) {
             // don't buy too expensive items if you don't have enough statistics
             if (statistic != null && statistic.getMinBuyOut() > 3000_00_00 && statistic.getCount() < 50) {
-                return new BuyingItem(BuyType.NONE);
+                return new BuyingItem();
             }
         }
 
-        if (statistic == null || statistic.count < 20) {
-            return new BuyingItem(BuyType.NONE);
+        if (statistic == null || statistic.getCount() < MIN_COUNT_IN_HISTORY) {
+            return new BuyingItem();
         }
         int minBuyOutPrice = (int) (BUYOUT_PERCENT * statistic.getMinBuyOut());
         Pair<BuyType, Integer> buyType = getBuyTypeAndProfit(item, minBuyOutPrice);
         //if (!scanOnlyFirstPage) {
         // almost never happens
         if (checkFallingPrices(item, buyType)) {
-            return new BuyingItem(BuyType.NONE);
+            return new BuyingItem();
         }
         //}
         return new BuyingItem(index, buyType.getKey());
@@ -173,6 +186,7 @@ public class Analyzer {
         return false;
     }
 
+    // TODO: move from here, analyzer only analyzes
     public void buyItem(
         Item item,
         BuyType buyType,
@@ -191,6 +205,7 @@ public class Analyzer {
                     logger.info("it's the first bid, so we set bidPrice=startBid: " + item.getStartBid() + " page=" + page);
                     bidPrice = item.getStartBid();
                 } else {
+                    // TODO: by this I think we can bid more expensive item than buyout
                     // somebody (maybe me) already set bid, so we need to increase it at 5%
                     bidPrice = (int) (item.getCurrentBid() * 1.05);
                     if (bidPrice <= item.getCurrentBid()) {
@@ -225,53 +240,84 @@ public class Analyzer {
         return Pair.of(buyType, profit);
     }
 
-    private Map<Integer, Statistic> getMapWithStatistics(Set<Item> allItems) {
-        Map<Integer, Statistic> map = new HashMap<>();
-        for (Item item : allItems) {
-            map.compute(item.getItemId(), (key, value) -> {
-                if (value == null) {
-                    return new Statistic(1, item.getBuyOut());
-                }
-                value.setMinBuyOut(Math.min(value.getMinBuyOut(), item.getBuyOut()));
-                value.setCount(value.getCount() + 1);
-                return value;
-            });
-        }
-        return map;
+    private Map<Integer, Statistic> getMapWithStatistics(Map<Integer, List<Item>> itemIdToItems) {
+        return itemIdToItems.entrySet().stream().collect(Collectors.toMap(
+            Map.Entry::getKey,
+            v -> {
+                List<Item> items = v.getValue();
+                int minBuyout =
+                    items.stream().map(Item::getBuyOut).mapToInt(e -> e).min().getAsInt();
+                return new Statistic(items.size(), minBuyout);
+            }
+        ));
     }
 
     public void calculate() throws IOException {
         List<Scan> scans = filesManager.readFiles();
-        for (Scan scan : scans) {
-            if (scan.isCurrentAuction()) {
-                currentItemsOnAuction = mapItemIdToItems(scan.getItems());
-                normalizePrice(currentItemsOnAuction.entrySet().stream()
-                    .map(Map.Entry::getValue)
-                    .flatMap(Collection::stream)
-                    .collect(Collectors.toList()));
-            }
-        }
-        Set<Item> allItems = new HashSet<>();
-        for (Scan scan : scans) {
-            allItems.addAll(scan.getItems());
-        }
-        // delete many items with bid price, but without buyout
-        allItems = allItems.stream().filter(e -> e.getBuyOut() != 0).collect(Collectors.toSet());
-        normalizePrice(allItems);
-        Map<Integer, List<Item>> itemIdToItems = savePercentileOfItems(allItems);
-        allItems.clear();
-        for (Map.Entry<Integer, List<Item>> entry : itemIdToItems.entrySet()) {
-            allItems.addAll(entry.getValue());
-        }
-        itemIdToStatistics = getMapWithStatistics(allItems);
+
+        saveCurrentItemsOnAuction(scans);
+
+        filterItems(scans);
+
+        Map<Integer, List<Item>> idToItems = getItemIdToItems(scans);
+        idToItems = savePercentileOfItems(idToItems);
+        itemIdToStatistics = getMapWithStatistics(idToItems);
     }
 
-    private Map<Integer, List<Item>> savePercentileOfItems(Set<Item> allItems) {
-        Map<Integer, List<Item>> itemIdToItems = mapItemIdToItems(allItems);
+    @NotNull
+    private Map<Integer, List<Item>> getItemIdToItems(List<Scan> scans) {
+        Map<Integer, List<Item>> idToItems = new HashMap<>();
+        for (int i = scans.size() - 1; i >= 0; i--) {
+            Scan scan = scans.get(i);
+            List<Item> items = scan.getItems();
+            mapItemIdToItems(items, idToItems);
+        }
+        return idToItems;
+    }
+
+    private void filterItems(List<Scan> scans) {
+        Map<Integer, Item> auctionIdToItem = new HashMap<>();
+        for (Scan scan : scans) {
+            List<Item> items = scan.getItems();
+
+            Iterator<Item> iterator = items.iterator();
+            while (iterator.hasNext()) {
+                Item item = iterator.next();
+                normalizePrice(item);
+                // delete many items with bid price, but without buyout
+                if (item.getBuyOut() == 0) {
+                    iterator.remove();
+                    continue;
+                }
+                // here Integer.value ? how?
+                Item prev = auctionIdToItem.putIfAbsent(item.getAuctionId(), item);
+                if (prev == null) {
+                    continue;
+                }
+                if (prev.getBuyOut() == item.getBuyOut()) {
+                    iterator.remove();
+                }
+            }
+        }
+    }
+
+    private void saveCurrentItemsOnAuction(List<Scan> scans) {
+        for (Scan scan : scans) {
+            if (scan.isCurrentAuction()) {
+                currentItemsOnAuction = mapItemIdToItems(scan.getItems(), new HashMap<>());
+                // TODO: delete?
+                currentItemsOnAuction.values()
+                    .stream()
+                    .flatMap(Collection::stream)
+                    .forEach(this::normalizePrice);
+            }
+        }
+    }
+
+    private Map<Integer, List<Item>> savePercentileOfItems(Map<Integer, List<Item>> itemIdToItems) {
         for (Map.Entry<Integer, List<Item>> entry : itemIdToItems.entrySet()) {
             List<Item> list = entry.getValue();
             list.sort(Comparator.comparingInt(Item::getBuyOut));
-            // TODO: add filter buyout 0
             // TODO: save another list for bid
             //percentile
             int trash = (list.size() / 100) * REMOVE_ITEMS_PERCENT;
@@ -283,8 +329,10 @@ public class Analyzer {
         return itemIdToItems;
     }
 
-    private Map<Integer, List<Item>> mapItemIdToItems(Collection<Item> allItems) {
-        Map<Integer, List<Item>> itemIdToItems = new HashMap<>();
+    private Map<Integer, List<Item>> mapItemIdToItems(
+        Collection<Item> allItems,
+        Map<Integer, List<Item>> itemIdToItems)
+    {
         for (Item item : allItems) {
             itemIdToItems.compute(item.getItemId(), (key, value) -> {
                 if (value == null) {
@@ -292,21 +340,21 @@ public class Analyzer {
                     l.add(item);
                     return l;
                 }
-                value.add(item);
+                if (value.size() < ITEMS_TO_SAVE_FOR_ITEM_ID) {
+                    value.add(item);
+                }
                 return value;
             });
         }
         return itemIdToItems;
     }
 
-    private void normalizePrice(Collection<Item> allItems) {
-        for (Item item : allItems) {
-            if (item.getCount() > 1) {
-                item.setCurrentBid(item.getCurrentBid() / item.getCount());
-                item.setBuyOut(item.getBuyOut() / item.getCount());
-                item.setCurrentBid(item.getCurrentBid() / item.getCount());
-                item.setCount(1);
-            }
+    private void normalizePrice(Item item) {
+        if (item.getCount() > 1) {
+            item.setStartBid(item.getStartBid() / item.getCount());
+            item.setCurrentBid(item.getCurrentBid() / item.getCount());
+            item.setBuyOut(item.getBuyOut() / item.getCount());
+            item.setCount(1);
         }
     }
 
