@@ -183,7 +183,7 @@ public class FilesManager implements AuctionDao {
     public boolean save(Collection<Item[]> items) {
         try {
             resetTmpFile();
-            logger.info("write tmp file with {} items", items.size());
+            logger.info("write tmp file with {} items", items.size() * 50);
             for (Item[] itemsFromCurrentPage : items) {
                 writeCurrentAuc(itemsFromCurrentPage);
             }
