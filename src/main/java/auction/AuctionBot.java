@@ -51,7 +51,7 @@ public class AuctionBot {
         String folder = "history_auction" + File.separator + faction;
         PriceLogger priceLogger = new PriceLogger(folder + File.separator + "logPrices.txt");
 
-        FilesManager filesManager = new FilesManager(folder);
+        FilesManager filesManager = new FilesManager(folder, client);
         this.analyzer = new Analyzer(
             wowInstance,
             new BidManagerImpl(folder + File.separator + "bidHistory.txt"),

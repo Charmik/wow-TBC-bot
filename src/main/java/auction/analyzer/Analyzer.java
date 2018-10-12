@@ -1,7 +1,6 @@
 package auction.analyzer;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -22,9 +21,9 @@ import auction.dao.BidManager;
 import auction.dao.BidManagerImpl;
 import auction.dao.FilesManager;
 import org.apache.commons.lang3.tuple.Pair;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import telegram.Client;
 import wow.WowInstance;
 
 /**
@@ -34,9 +33,9 @@ public class Analyzer {
 
     private static final Logger logger = LoggerFactory.getLogger(Analyzer.class);
     private static final int ITEMS_TO_SAVE_FOR_ITEM_ID = 1000;
-    private static final int REMOVE_ITEMS_PERCENT = 5;
+    private static final int REMOVE_ITEMS_PERCENT = 10;
     private static final int MIN_COUNT_IN_HISTORY = 50;
-    private static final double BUYOUT_PERCENT = 0.70;
+    private static final double BUYOUT_PERCENT = 0.75;
 
     private final BidManager bidManager;
     private final PriceLogger priceLogger;
@@ -63,14 +62,14 @@ public class Analyzer {
         }
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
         long start = System.nanoTime();
         String folder = "history_auction/horde";
         Analyzer analyzer = new Analyzer(
             null,
             new BidManagerImpl(folder + File.separator + "bidHistory.txt"),
             null,
-            new FilesManager(folder),
+            new FilesManager(folder, new Client()),
             false);
         analyzer.calculate();
         Statistic statistic = analyzer.itemIdToStatistics.get(21886);
@@ -252,8 +251,8 @@ public class Analyzer {
         ));
     }
 
-    public void calculate() throws IOException {
-        List<Scan> scans = filesManager.readFiles();
+    public void calculate() {
+        List<Scan> scans = filesManager.getScans();
 
         saveCurrentItemsOnAuction(scans);
 
@@ -264,7 +263,6 @@ public class Analyzer {
         itemIdToStatistics = getMapWithStatistics(idToItems);
     }
 
-    @NotNull
     private Map<Integer, List<Item>> getItemIdToItems(List<Scan> scans) {
         Map<Integer, List<Item>> idToItems = new HashMap<>();
         for (int i = scans.size() - 1; i >= 0; i--) {
@@ -275,7 +273,7 @@ public class Analyzer {
         return idToItems;
     }
 
-    private void filterItems(List<Scan> scans) {
+    private void filterItems(Collection<Scan> scans) {
         Map<Integer, Item> auctionIdToItem = new HashMap<>();
         for (Scan scan : scans) {
             List<Item> items = scan.getItems();
@@ -301,7 +299,7 @@ public class Analyzer {
         }
     }
 
-    private void saveCurrentItemsOnAuction(List<Scan> scans) {
+    private void saveCurrentItemsOnAuction(Collection<Scan> scans) {
         for (Scan scan : scans) {
             if (scan.isCurrentAuction()) {
                 currentItemsOnAuction = mapItemIdToItems(scan.getItems(), new HashMap<>());

@@ -1,13 +1,9 @@
 package auction;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -54,7 +50,6 @@ public class Buyer {
     private Player player;
     private CtmManager ctmManager;
     private String tmpFile;
-    private BufferedWriter historyBufferedWriter;
     private boolean scanOnlyFirstPage;
     private boolean firstIteration;
     private AuctionManager auctionManager;
@@ -79,7 +74,6 @@ public class Buyer {
         this.analyzer = analyzer;
         this.ctmManager = wowInstance.getCtmManager();
         this.objectManager = wowInstance.getObjectManager();
-        this.tmpFile = folder + File.separator + "tmp" + File.separator + "tmp.txt";
         this.filesManager = filesManager;
         this.scanOnlyFirstPage = scanOnlyFirstPage;
         // TODO: do we really need it? history is big.
@@ -126,7 +120,7 @@ public class Buyer {
      * @return how many pages were scanned in the auction
      */
     private int scanFullAuction() throws IOException, ParseException, InterruptedException {
-        ArrayList<Item[]> itemsFromAuction = new ArrayList<>();
+        List<Item[]> itemsFromAuction = new ArrayList<>();
         int page;
         for (page = 1; page <= MAX_PAGES; page++) {
             if (page % 30 == 0 || page == 1) {
@@ -195,18 +189,8 @@ public class Buyer {
         } else {
             analyzeFails = 0;
             logger.info("found {} pages for the scan", page);
-            resetTmpFile();
-            logger.info("write tmp file with {} items", itemsFromAuction.size());
-            for (Item[] itemsFromCurrentPage : itemsFromAuction) {
-                writeCurrentAuc(itemsFromCurrentPage);
-            }
+            filesManager.save(itemsFromAuction);
             firstIteration = false;
-            historyBufferedWriter.flush();
-            historyBufferedWriter.close();
-            boolean savedNewFile = filesManager.addToDataBase(folder, tmpFile);
-            if (savedNewFile) {
-                client.sendMessageToCharm("successfully saved a new file to:" + player.getFaction());
-            }
         }
         return page;
     }
@@ -359,9 +343,6 @@ public class Buyer {
 
     void resetAuction() {
         try {
-            if (!scanOnlyFirstPage) {
-                resetTmpFile();
-            }
             logger.info("reset auction");
             //close auctionHouse
             wowInstance.click(WinKey.D1);
@@ -401,11 +382,6 @@ public class Buyer {
         }
     }
 
-    private void resetTmpFile() throws IOException {
-        historyBufferedWriter = new BufferedWriter(new FileWriter(tmpFile));
-        initWrite();
-    }
-
     private boolean equals(Item[] firstScan, Item[] secondScan) {
         for (int i = 0; i < firstScan.length; i++) {
             if (!firstScan[i].compareFields(secondScan[i])) {
@@ -414,7 +390,6 @@ public class Buyer {
         }
         return true;
     }
-
 
     private boolean validateItems(Item[] itemsFromCurrentPage) {
         if (itemsFromCurrentPage == null) {
@@ -428,17 +403,6 @@ public class Buyer {
         }
         return true;
     }
-
-    private void initWrite() throws IOException {
-        historyBufferedWriter.write(new Date() + "\n");
-    }
-
-    private void writeCurrentAuc(Item[] items) throws IOException {
-        for (Item item : items) {
-            historyBufferedWriter.write(item.toString() + "\n");
-        }
-    }
-
 
     private void printCurrentPage() {
         AuctionManager auctionManager = wowInstance.getAuctionManager();

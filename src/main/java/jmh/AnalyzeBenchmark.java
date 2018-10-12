@@ -16,6 +16,7 @@ import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
+import telegram.Client;
 
 /**
  * @author alexlovkov
@@ -44,7 +45,7 @@ public class AnalyzeBenchmark {
             null,
             new BidManagerImpl(folder + File.separator + "bidHistory.txt"),
             null,
-            new FilesManager(folder),
+            new FilesManager(folder, new Client()),
             false);
         analyzer.calculate();
     }

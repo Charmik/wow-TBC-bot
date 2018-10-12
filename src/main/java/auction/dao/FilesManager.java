@@ -1,8 +1,10 @@
 package auction.dao;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -13,6 +15,7 @@ import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -23,11 +26,13 @@ import auction.Item;
 import auction.Scan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import telegram.Client;
+import wow.WowInstance;
 
 /**
  * @author alexlovkov
  */
-public class FilesManager {
+public class FilesManager implements AuctionDao {
 
     private static final Logger logger = LoggerFactory.getLogger(FilesManager.class);
 
@@ -35,13 +40,18 @@ public class FilesManager {
     private static final int HOURS = 10;
 
     private final String path;
+    private final String tmpFile;
+    private final Client client;
+    private BufferedWriter historyBufferedWriter;
 
-    public FilesManager(String path) {
+    public FilesManager(String path, Client client) {
         this.path = path;
+        this.tmpFile = path + File.separator + "tmp" + File.separator + "tmp.txt";
+        this.client = client;
     }
 
     public static void main(String[] args) throws IOException, ParseException {
-        FilesManager filesManager = new FilesManager("history_auction" + File.separator + "alliance");
+        FilesManager filesManager = new FilesManager("history_auction" + File.separator + "alliance", new Client());
         System.out.println(filesManager.getLastDateFromFiles().date);
     }
 
@@ -68,7 +78,7 @@ public class FilesManager {
         return new LastFile(last, index);
     }
 
-    public boolean addToDataBase(
+    private boolean addToDataBase(
         String folder,
         String filePath) throws IOException, ParseException
     {
@@ -100,7 +110,8 @@ public class FilesManager {
         }
     }
 
-    public List<Scan> readFiles() throws IOException {
+    @Override
+    public List<Scan> getScans() {
         List<Scan> scans = new ArrayList<>();
         File[] files = new File(path).listFiles();
 
@@ -161,11 +172,48 @@ public class FilesManager {
                 scans.add(new Scan(date, items, isTmpFile));
             } catch (IOException exception) {
                 logger.info("file:{}", file);
-                throw exception;
             }
         }
         Collections.sort(scans);
         return scans;
+    }
+
+
+    @Override
+    public boolean save(Collection<Item[]> items) {
+        try {
+            resetTmpFile();
+            logger.info("write tmp file with {} items", items.size());
+            for (Item[] itemsFromCurrentPage : items) {
+                writeCurrentAuc(itemsFromCurrentPage);
+            }
+            historyBufferedWriter.flush();
+            historyBufferedWriter.close();
+            boolean savedNewFile = addToDataBase(path, tmpFile);
+            if (savedNewFile) {
+                client.sendMessageToCharm("successfully saved a new file to:" +
+                    WowInstance.getInstance().getPlayer().getFaction());
+            }
+        } catch (Throwable t) {
+            logger.error("couldn't save {} items to db");
+            return false;
+        }
+        return true;
+    }
+
+    private void resetTmpFile() throws IOException {
+        historyBufferedWriter = new BufferedWriter(new FileWriter(tmpFile));
+        initWrite();
+    }
+
+    private void initWrite() throws IOException {
+        historyBufferedWriter.write(new Date() + "\n");
+    }
+
+    private void writeCurrentAuc(Item[] items) throws IOException {
+        for (Item item : items) {
+            historyBufferedWriter.write(item.toString() + "\n");
+        }
     }
 
     private class LastFile {
