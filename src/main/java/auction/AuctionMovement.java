@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import util.Utils;
 import wow.WowInstance;
 import wow.components.Coordinates;
-import wow.memory.objects.Player;
 
 public class AuctionMovement {
 
@@ -24,7 +23,6 @@ public class AuctionMovement {
 
     private final Movement movement;
     private final WowInstance wowInstance;
-    private final Player player;
     private final GlobalGraph globalGraph = new GlobalGraph("routesAuc");
     private final Coordinates mailboxCoordinates;
     private final Coordinates auctionCoordinates;
@@ -33,8 +31,7 @@ public class AuctionMovement {
         this.movement = new Movement(wowInstance.getPlayer(), wowInstance.getCtmManager(), wowInstance, wowInstance.getObjectManager());
         this.wowInstance = wowInstance;
         globalGraph.buildGlobalGraph();
-        player = wowInstance.getPlayer();
-        if (player.getFaction().isAlliance()) {
+        if (wowInstance.getPlayer().getFaction().isAlliance()) {
             mailboxCoordinates = STORMWIND_MAIL_BOX;
             auctionCoordinates = STORMWIND_AUCTION;
         } else {
@@ -45,13 +42,15 @@ public class AuctionMovement {
 
     public void goToMail() {
         logger.info("goToMail");
-        List<Graph.Vertex> path = globalGraph.getShortestPathFromPlayerToPoint(player, mailboxCoordinates);
+        List<Graph.Vertex> path = globalGraph.getShortestPathFromPlayerToPoint(
+            wowInstance.getPlayer(), mailboxCoordinates);
         goTo(path);
     }
 
     public void goToAuction() {
         logger.info("goToAuction");
-        List<Graph.Vertex> path = globalGraph.getShortestPathFromPlayerToPoint(player, auctionCoordinates);
+        List<Graph.Vertex> path = globalGraph.getShortestPathFromPlayerToPoint(
+            wowInstance.getPlayer(), auctionCoordinates);
         goTo(path);
     }
 
@@ -68,7 +67,7 @@ public class AuctionMovement {
     }
 
     public boolean farAwayFromAuction() {
-        double distance = auctionCoordinates.distance(player.getCoordinates());
+        double distance = auctionCoordinates.distance(wowInstance.getPlayer().getCoordinates());
         return distance > 5;
     }
 }

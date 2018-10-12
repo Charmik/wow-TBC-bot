@@ -17,6 +17,8 @@ public final class WowInstance {
 
     private static final WowInstance instance = new WowInstance("World of Warcraft");
 
+    private final int processId;
+
     public static WowInstance getInstance() {
         return instance;
     }
@@ -24,16 +26,16 @@ public final class WowInstance {
     private final HWND hwnd;
     private final WowMemory wowMemory;
 
-    public int millisForSleeping = 50;
+    private int millisForSleeping = 50;
 
     public WowInstance(String windowName) {
-        hwnd = Win32Api.getProcessHwnd(windowName);
-        int processId = Win32Api.getProcessId(hwnd);
-
+        this.hwnd = Win32Api.getProcessHwnd(windowName);
+        this.processId = Win32Api.getProcessId(hwnd);
         this.wowMemory = new WowMemory(processId);
     }
 
     public Player getPlayer() {
+        // TODO: if doesn't work try to update wowMemory
         return wowMemory.getPlayer();
     }
 

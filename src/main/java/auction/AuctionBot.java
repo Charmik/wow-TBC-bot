@@ -16,7 +16,6 @@ import util.Utils;
 import wow.Reconnect;
 import wow.WowInstance;
 import wow.memory.objects.AuctionManager;
-import wow.memory.objects.Player;
 
 public class AuctionBot {
 
@@ -24,7 +23,6 @@ public class AuctionBot {
     private static final int FREQUENCY_FOR_SELLING = 50;
 
     private static final WowInstance wowInstance = new WowInstance("World of Warcraft");
-    private final Player player;
     private final Buyer buyer;
     private final Seller seller;
     private final Analyzer analyzer;
@@ -39,9 +37,8 @@ public class AuctionBot {
         if (this.reconnect.isDisconnected()) {
             this.reconnect.reconnect();
         }
-        this.player = wowInstance.getPlayer();
         String faction;
-        if (player.getFaction().isHorde()) {
+        if (wowInstance.getPlayer().getFaction().isHorde()) {
             faction = "horde";
         } else {
             faction = "alliance";
@@ -60,7 +57,7 @@ public class AuctionBot {
             scanOnlyFirstPage);
         this.analyzer.calculate();
         this.auctionMovement = new AuctionMovement(wowInstance);
-        this.buyer = new Buyer(scanOnlyFirstPage, folder, analyzer, filesManager, auctionMovement, reconnect, client);
+        this.buyer = new Buyer(scanOnlyFirstPage, analyzer, filesManager, auctionMovement, reconnect, client);
         AuctionManager auctionManager = wowInstance.getAuctionManager();
         this.seller = new Seller(auctionManager, wowInstance, priceLogger, analyzer, reconnect);
         this.mailbox = new Mailbox(wowInstance);
@@ -102,7 +99,7 @@ public class AuctionBot {
             buyer.resetAuction();
         }
         */
-        this.client.sendPhotoAndMessage("started bot " + player.getAccountName());
+        this.client.sendPhotoAndMessage("started bot " + wowInstance.getPlayer().getAccountName());
         for (; ; ) {
             try {
 //            auctionMovement.goToMail();
@@ -134,7 +131,7 @@ public class AuctionBot {
                 }
                 if (failed == FREQUENCY_FOR_SELLING) {
                     int sleepTime = 1000 * 60 * 5;
-                    client.sendPhotoAndMessage(player.getAccountName() +
+                    client.sendPhotoAndMessage(wowInstance.getPlayer() +
                         " failed to analyze auction " + FREQUENCY_FOR_SELLING + " times");
                     logger.info("sleep:{}, because we failed:{} times to analyze full auction", sleepTime, failed);
                     Utils.sleep(sleepTime);

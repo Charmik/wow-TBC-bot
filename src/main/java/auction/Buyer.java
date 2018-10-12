@@ -39,7 +39,6 @@ public class Buyer {
     private static final int MIN_PAGES = 250;
 
     private static final WowInstance wowInstance = WowInstance.getInstance();
-    private final String folder;
     private final AuctionMovement auctionMovement;
     private final Reconnect reconnect;
     private final Client client;
@@ -47,9 +46,7 @@ public class Buyer {
     private final Analyzer analyzer;
     private final ObjectManager objectManager;
     private final Movement movement;
-    private Player player;
     private CtmManager ctmManager;
-    private String tmpFile;
     private boolean scanOnlyFirstPage;
     private boolean firstIteration;
     private AuctionManager auctionManager;
@@ -57,20 +54,17 @@ public class Buyer {
     private int analyzeFails;
     private long lastAnalyzeCalculate;
 
-    public Buyer(
+    Buyer(
         boolean scanOnlyFirstPage,
-        String folder,
         Analyzer analyzer,
         FilesManager filesManager,
         AuctionMovement auctionMovement,
         Reconnect reconnect,
         Client client)
     {
-        this.folder = folder;
         this.auctionMovement = auctionMovement;
         this.reconnect = reconnect;
         this.client = client;
-        this.player = wowInstance.getPlayer();
         this.analyzer = analyzer;
         this.ctmManager = wowInstance.getCtmManager();
         this.objectManager = wowInstance.getObjectManager();
@@ -78,6 +72,7 @@ public class Buyer {
         this.scanOnlyFirstPage = scanOnlyFirstPage;
         // TODO: do we really need it? history is big.
         this.firstIteration = false;
+        Player player = wowInstance.getPlayer();
         if (player.getZone().isStranglethornVale()) {
             this.graph = new GlobalGraph("routesAuc\\stranglethornVale");
         } else if (player.getZone().isWinterspring()) {
@@ -119,7 +114,7 @@ public class Buyer {
      *
      * @return how many pages were scanned in the auction
      */
-    private int scanFullAuction() throws IOException, ParseException, InterruptedException {
+    private int scanFullAuction() throws InterruptedException {
         List<Item[]> itemsFromAuction = new ArrayList<>();
         int page;
         for (page = 1; page <= MAX_PAGES; page++) {
@@ -172,7 +167,7 @@ public class Buyer {
         }
 
         if (auctionMovement.farAwayFromAuction()) {
-            logger.info("player is too far away from auction, coordinates:{}", player.getCoordinates());
+            logger.info("player is too far away from auction, coordinates:{}", wowInstance.getPlayer().getCoordinates());
             return page;
         }
 
@@ -239,7 +234,7 @@ public class Buyer {
                 objectManager.refillPlayers();
                 isDead = isDead | wowInstance.getPlayer().isDead();
                 if (isDead) {
-                    client.sendPhotoAndMessage(player.getAccountName() + " is dead, going to ress");
+                    client.sendPhotoAndMessage(wowInstance.getPlayer().getAccountName() + " is dead, going to ress");
                     if (!firstRun) {
                         long sleepBeforeRess = 1000 * 60 * 10;
                         logger.info("sleeping for:{}", sleepBeforeRess);
@@ -247,7 +242,7 @@ public class Buyer {
                     }
                     firstRun = false;
                     logger.info("player is dead, trying to ress");
-                    if (player.isDeadLyingDown()) {
+                    if (wowInstance.getPlayer().isDeadLyingDown()) {
                         logger.info("player isDeadLyingDown");
                         for (int i = 0; i < 10; i++) {
                             wowInstance.click(WinKey.D9, 0L);
@@ -258,15 +253,15 @@ public class Buyer {
                     if (graph != null) {
                         Coordinates point;
                         // auction points for different locations
-                        if (player.getZone().isStranglethornVale()) {
+                        if (wowInstance.getPlayer().getZone().isStranglethornVale()) {
                             point = new Coordinates(-14417.693f, 523.9574f, 5.014096f);
-                        } else if (player.getZone().isWinterspring()) {
+                        } else if (wowInstance.getPlayer().getZone().isWinterspring()) {
                             point = new Coordinates(6772.7534f, -4679.1396f, 723.76514f);
                         } else {
                             // TODO: tanaris
                             point = null;
                         }
-                        List<Graph.Vertex> shortestPath = graph.getShortestPath(player.getCoordinates(), point);
+                        List<Graph.Vertex> shortestPath = graph.getShortestPath(wowInstance.getPlayer().getCoordinates(), point);
                         boolean success = true;
                         for (Graph.Vertex vertex : shortestPath) {
                             if (!movement.goToNextPoint(vertex.coordinates)) {
@@ -279,7 +274,7 @@ public class Buyer {
                         for (int i = 0; i < 120; i++) {
                             wowInstance.click(WinKey.D0, 0L);
                             Utils.sleep(1000);
-                            if (!player.isDead()) {
+                            if (!wowInstance.getPlayer().isDead()) {
                                 break;
                             }
                         }
@@ -293,10 +288,10 @@ public class Buyer {
                         wowInstance.click(WinKey.D4);
                         resetAuction();
                         //screen shot
-                        client.sendPhotoAndMessage(player.getAccountName() + " should be alive health:" + player.getHealthPercent());
+                        client.sendPhotoAndMessage(wowInstance.getPlayer().getAccountName() + " should be alive health:" + wowInstance.getPlayer().getHealthPercent());
                         if (!success) {
                             logger.info("couldn't ress, exit");
-                            client.sendPhotoAndMessage(player.getAccountName() + " couldn't ress, exit");
+                            client.sendPhotoAndMessage(wowInstance.getPlayer().getAccountName() + " couldn't ress, exit");
                             ctmManager.stop();
                             return false;
                         }
@@ -350,11 +345,11 @@ public class Buyer {
             objectManager.refillUnits();
             // TODO: take by GUID if stay the same || .filter (lvl = 50) (check neutral auc level)
 
-            Optional<UnitObject> nearestUnitTo = objectManager.getNearestAuctioneer(this.player);
+            Optional<UnitObject> nearestUnitTo = objectManager.getNearestAuctioneer(wowInstance.getPlayer());
             if (nearestUnitTo.isPresent()) {
                 UnitObject unitObject = nearestUnitTo.get();
                 logger.info("auctioneer was found, his level:{}", unitObject.getLevel());
-                this.player.target(unitObject);
+                wowInstance.getPlayer().target(unitObject);
                 Utils.sleep(1000);
                 ctmManager.face(unitObject);
                 Utils.sleep(1000);
@@ -371,7 +366,7 @@ public class Buyer {
                 wowInstance.click(WinKey.S, 52);
                 Utils.sleep(1000);
                 wowInstance.click(WinKey.D2);
-                client.sendPhotoAndMessage(player.getAccountName() + " reseted auction");
+                client.sendPhotoAndMessage(wowInstance.getPlayer().getAccountName() + " reseted auction");
             } else {
                 logger.error("auc wasn't found");
             }
