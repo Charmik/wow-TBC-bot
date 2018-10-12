@@ -13,8 +13,8 @@ public class BidManagerStub implements BidManager {
     @Override
     public boolean shouldBid(int auctionId, int currentBid) {
         Integer prevBid = map.get(auctionId);
+        map.put(auctionId, currentBid);
         if (prevBid == null) {
-            map.put(auctionId, currentBid);
             return true;
         }
         boolean ans;
@@ -23,7 +23,6 @@ public class BidManagerStub implements BidManager {
         } else {
             ans = true;
         }
-        map.put(auctionId, currentBid);
         return ans;
     }
 
