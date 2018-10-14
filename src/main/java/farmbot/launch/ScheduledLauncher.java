@@ -47,7 +47,7 @@ public class ScheduledLauncher {
         if (args.length > 1 && args[1].equals("now")) {
             now = true;
         }
-        int hours = Integer.valueOf(args[2]);
+        int hours = Integer.parseInt(args[2]);
 
         String pathToWow = args[0];
 
