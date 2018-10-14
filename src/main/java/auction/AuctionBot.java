@@ -2,7 +2,6 @@ package auction;
 
 import java.io.File;
 import java.io.IOException;
-import java.text.ParseException;
 import java.util.Arrays;
 
 import auction.analyzer.Analyzer;
@@ -32,11 +31,9 @@ public class AuctionBot {
     private final Client client;
 
     private AuctionBot(Account account, boolean scanOnlyFirstPage) throws IOException {
-        this.client = new Client();
+        this.client = new Client(account.getAccountName());
         this.reconnect = new Reconnect(wowInstance, account, client);
-        if (this.reconnect.isDisconnected()) {
-            this.reconnect.reconnect();
-        }
+        this.reconnect.checkAndReconnect();
         String faction;
         if (wowInstance.getPlayer().getFaction().isHorde()) {
             faction = "horde";
@@ -63,7 +60,7 @@ public class AuctionBot {
         this.mailbox = new Mailbox(wowInstance);
     }
 
-    public static void main(String[] args) throws IOException, ParseException, InterruptedException {
+    public static void main(String[] args) throws IOException, InterruptedException {
         boolean scanOnlyFirstPage = false;
         logger.info("Started, args:{}", Arrays.toString(args));
         if (args.length < 2) {
@@ -82,7 +79,7 @@ public class AuctionBot {
         auctionBot.runBuyerWithSelling();
     }
 
-    private void runBuyer() throws InterruptedException, ParseException, IOException {
+    private void runBuyer() throws InterruptedException, IOException {
         boolean success = buyer.analyze();
         if (!success) {
             Runtime.getRuntime().exit(0);
@@ -99,7 +96,7 @@ public class AuctionBot {
             buyer.resetAuction();
         }
         */
-        this.client.sendPhotoAndMessage("started bot " + wowInstance.getPlayer().getAccountName());
+        this.client.sendPhotoAndMessage("started");
         for (; ; ) {
             try {
 //            auctionMovement.goToMail();
@@ -113,26 +110,27 @@ public class AuctionBot {
                 for (int i = 0; i < FREQUENCY_FOR_SELLING; i++) {
                     boolean successAnalyze = buyer.analyze();
                     reconnect.checkAndReconnect();
-                    if (successAnalyze) {
-                        logger.info("calculate auction & sell items");
-                        analyzer.calculate();
-                    } else {
+                    if (!successAnalyze) {
                         failed++;
                         logger.error("bot failed to analyze auction at iteration:{} failed:{} of {}", i, failed, FREQUENCY_FOR_SELLING);
                     }
-                    if (failed % 10 == 0 && failed != 0) {
+                    if (failed % 15 == 0 && failed != 0) {
                         auctionMovement.goToAuction();
                         buyer.resetAuction();
+                        //client.sendPhotoAndMessage("reset auction");
                     }
                     if (successAnalyze && !wasSelling) {
+                        logger.info("calculate auction & sell items");
+                        analyzer.calculate();
                         sellWithRetries(1);
                         wasSelling = true;
                     }
                 }
                 if (failed == FREQUENCY_FOR_SELLING) {
                     int sleepTime = 1000 * 60 * 5;
-                    client.sendPhotoAndMessage(wowInstance.getPlayer() +
-                        " failed to analyze auction " + FREQUENCY_FOR_SELLING + " times");
+                    buyer.resetAuction();
+                    client.sendPhotoAndMessage(
+                        "failed to analyze auction " + FREQUENCY_FOR_SELLING + " times");
                     logger.info("sleep:{}, because we failed:{} times to analyze full auction", sleepTime, failed);
                     Utils.sleep(sleepTime);
                 }
