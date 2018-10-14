@@ -49,7 +49,7 @@ public class Writer {
         Utils.sleep(500);
     }
 
-    static public void sellItem(WowInstance wowInstance, int bag, int slot, int price) {
+    public static void sellItem(WowInstance wowInstance, int bag, int slot, int price) {
         //720 mins - 12hour
         //1440 mins - 24 hour
         //2880 mins - 48 hour
