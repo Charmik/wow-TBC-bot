@@ -37,6 +37,8 @@ public class Buyer {
     private static final int SLEEP1 = 100;
     public static final int SLEEP2 = 1300;
     private static final int MIN_PAGES = 250;
+    // TODO: change to 20
+    private static final long SLEEP_WHEN_SCAN_FAILED = TimeUnit.SECONDS.toMillis(3);
 
     private static final WowInstance wowInstance = WowInstance.getInstance();
     private final AuctionMovement auctionMovement;
@@ -51,7 +53,6 @@ public class Buyer {
     private boolean firstIteration;
     private AuctionManager auctionManager;
     private GlobalGraph graph;
-    private int analyzeFails;
     private long lastAnalyzeCalculate;
 
     Buyer(
@@ -82,11 +83,10 @@ public class Buyer {
         if (graph != null) {
             this.graph.buildGlobalGraph();
         }
-        this.analyzeFails = 0;
         this.lastAnalyzeCalculate = 0;
     }
 
-    boolean analyze() throws InterruptedException, IOException, ParseException {
+    boolean analyze() throws InterruptedException, IOException {
         if (scanOnlyFirstPage) {
             return analazeOnlyFirstPage();
         } else {
@@ -94,7 +94,7 @@ public class Buyer {
         }
     }
 
-    private boolean analyzeFullAuction() throws IOException, ParseException, InterruptedException {
+    private boolean analyzeFullAuction() throws InterruptedException {
         logger.info("analyzeFullAuction");
         long now = System.currentTimeMillis();
         // don't update auction too often
@@ -117,6 +117,7 @@ public class Buyer {
     private int scanFullAuction() throws InterruptedException {
         List<Item[]> itemsFromAuction = new ArrayList<>();
         int page;
+        int failsPerPages = 0;
         for (page = 1; page <= MAX_PAGES; page++) {
             if (page % 30 == 0 || page == 1) {
                 System.out.println("page:" + page);
@@ -125,19 +126,18 @@ public class Buyer {
             if (itemsFromCurrentPage == null) {
                 break;
             }
-            //Utils.sleep(100);
-            Item[] secondRead = auctionManager.getItemsFromCurrentPage();
-
             int errorReading = 0;
             if (!firstIteration) {
                 for (int i = 0; i < itemsFromCurrentPage.length; i++) {
                     Item item = itemsFromCurrentPage[i];
                     BuyingItem buyingItem = analyzer.buyItem(item, i + 1);
 
+                    Utils.sleep(100);
+                    Item[] secondRead = auctionManager.getItemsFromCurrentPage();
                     Item secondReadItem = secondRead[i];
                     if (!item.compareFields(secondReadItem)) {
                         errorReading++;
-                        logger.error("read another item prev:{} ,second read:{}", item, secondReadItem);
+                        //logger.error("read another item prev:{} ,second read:{}", item, secondReadItem);
                     }
                     if (buyingItem.getBuyType() != BuyType.NONE) {
                         Utils.sleep(1000);
@@ -145,16 +145,21 @@ public class Buyer {
                         if (item.compareFields(secondReadItem) && analyzer.buyItem(secondReadItem, i + 1).getBuyType() != BuyType.NONE) {
                             analyzer.buyItem(item, buyingItem.getBuyType(), buyingItem.getIndex(), page, true);
                             logger.info("bought item:{}", item);
-                        } else {
-                            logger.error("read another item prev:{} ,second read:{}", item, secondReadItem);
                         }
                     }
                 }
             }
             if (errorReading > 0) {
-                logger.error("for 1 scan we had reading errors:{} page:{}, errorReading:{}", errorReading, page, errorReading);
-                break;
+                failsPerPages++;
+                logger.error("for 1 scan we had reading errors:{} page:{}, errorReading:{}, failsPerPages:{}",
+                    errorReading, page, errorReading, failsPerPages);
+                if (failsPerPages >= 3) {
+                    break;
+                } else {
+                    continue;
+                }
             }
+            failsPerPages = 0;
             itemsFromAuction.add(itemsFromCurrentPage);
             Thread.sleep(SLEEP1);
             auctionManager.nextPage();
@@ -162,22 +167,13 @@ public class Buyer {
         }
 
         if (auctionMovement.farAwayFromAuction()) {
-            logger.info("player is too far away from auction, coordinates:{}", wowInstance.getPlayer().getCoordinates());
             return page;
         }
 
         if (page < MIN_PAGES) {
-            int sleepingTime = 1000 * 60 * 1;
-            analyzeFails++;
-            logger.warn("found not enough pages, something wrong, found only:{}, sleeping for:{} fails:{}", page, sleepingTime, analyzeFails);
-            Utils.sleep(sleepingTime);
-
-            if (analyzeFails == 5) {
-                resetAuction();
-            }
-            analyzeFails %= 5;
+            logger.warn("found not enough pages, something wrong, found only:{}, sleeping for:{}", page, SLEEP_WHEN_SCAN_FAILED);
+            Utils.sleep(SLEEP_WHEN_SCAN_FAILED);
         } else {
-            analyzeFails = 0;
             logger.info("found {} pages for the scan", page);
             filesManager.save(itemsFromAuction);
             firstIteration = false;
@@ -208,7 +204,7 @@ public class Buyer {
         return page - 1;
     }
 
-    private boolean analazeOnlyFirstPage() throws IOException {
+    private boolean analazeOnlyFirstPage() {
         logger.info("analazeOnlyFirstPage");
         resetOnFirstPage();
         AuctionManager auctionManager = wowInstance.getAuctionManager();
@@ -220,74 +216,11 @@ public class Buyer {
         for (; ; ) {
             count++;
             if (count % 500 == 0) {
-                reconnect.checkAndReconnect();
-                count = 0;
-                boolean isDead = wowInstance.getPlayer().isDead();
-                objectManager.refillPlayers();
-                isDead = isDead | wowInstance.getPlayer().isDead();
-                if (isDead) {
-                    client.sendPhotoAndMessage(wowInstance.getPlayer().getAccountName() + " is dead, going to ress");
-                    if (!firstRun) {
-                        long sleepBeforeRess = 1000 * 60 * 10;
-                        logger.info("sleeping for:{}", sleepBeforeRess);
-                        Utils.sleep(sleepBeforeRess);
-                    }
+                boolean ressed = resetNeutralAuction(firstRun);
+                if (ressed) {
                     firstRun = false;
-                    logger.info("player is dead, trying to ress");
-                    if (wowInstance.getPlayer().isDeadLyingDown()) {
-                        logger.info("player isDeadLyingDown");
-                        for (int i = 0; i < 10; i++) {
-                            wowInstance.click(WinKey.D9, 0L);
-                            Utils.sleep(100);
-                        }
-                    }
-                    Utils.sleep(5000);
-                    if (graph != null) {
-                        Coordinates point;
-                        // auction points for different locations
-                        if (wowInstance.getPlayer().getZone().isStranglethornVale()) {
-                            point = new Coordinates(-14417.693f, 523.9574f, 5.014096f);
-                        } else if (wowInstance.getPlayer().getZone().isWinterspring()) {
-                            point = new Coordinates(6772.7534f, -4679.1396f, 723.76514f);
-                        } else {
-                            // TODO: tanaris
-                            point = null;
-                        }
-                        List<Graph.Vertex> shortestPath = graph.getShortestPath(wowInstance.getPlayer().getCoordinates(), point);
-                        boolean success = true;
-                        for (Graph.Vertex vertex : shortestPath) {
-                            if (!movement.goToNextPoint(vertex.coordinates)) {
-                                success = false;
-                                wowInstance.click(WinKey.D0);
-                            }
-                        }
-                        Utils.sleep(1000);
-                        ctmManager.goTo(shortestPath.get(shortestPath.size() - 1).getCoordinates(), false);
-                        for (int i = 0; i < 120; i++) {
-                            wowInstance.click(WinKey.D0, 0L);
-                            Utils.sleep(1000);
-                            if (!wowInstance.getPlayer().isDead()) {
-                                break;
-                            }
-                        }
-                        Utils.sleep(2000);
-                        wowInstance.click(WinKey.D0);
-                        Utils.sleep(2000);
-                        // cat form
-                        wowInstance.click(WinKey.D5);
-                        Utils.sleep(2000);
-                        // stealth
-                        wowInstance.click(WinKey.D4);
-                        resetAuction();
-                        //screen shot
-                        client.sendPhotoAndMessage(wowInstance.getPlayer().getAccountName() + " should be alive health:" + wowInstance.getPlayer().getHealthPercent());
-                        if (!success) {
-                            logger.info("couldn't ress, exit");
-                            client.sendPhotoAndMessage(wowInstance.getPlayer().getAccountName() + " couldn't ress, exit");
-                            ctmManager.stop();
-                            return false;
-                        }
-                    }
+                } else {
+                    return false;
                 }
             }
 
@@ -316,6 +249,79 @@ public class Buyer {
 
     }
 
+    private boolean resetNeutralAuction(boolean firstRun) {
+        if (reconnect.checkAndReconnect()) {
+            resetAuction();
+        }
+        boolean isDead = wowInstance.getPlayer().isDead();
+        objectManager.refillPlayers();
+        isDead = isDead | wowInstance.getPlayer().isDead();
+        if (isDead) {
+            client.sendPhotoAndMessage("is dead, going to ress");
+            if (!firstRun) {
+                long sleepBeforeRess = 1000 * 60 * 10;
+                logger.info("sleeping for:{}", sleepBeforeRess);
+                Utils.sleep(sleepBeforeRess);
+            }
+            logger.info("player is dead, trying to ress");
+            if (wowInstance.getPlayer().isDeadLyingDown()) {
+                logger.info("player isDeadLyingDown");
+                for (int i = 0; i < 10; i++) {
+                    wowInstance.click(WinKey.D9, 0L);
+                    Utils.sleep(100);
+                }
+            }
+            Utils.sleep(5000);
+            if (graph != null) {
+                Coordinates point;
+                // auction points for different locations
+                if (wowInstance.getPlayer().getZone().isStranglethornVale()) {
+                    point = new Coordinates(-14417.693f, 523.9574f, 5.014096f);
+                } else if (wowInstance.getPlayer().getZone().isWinterspring()) {
+                    point = new Coordinates(6772.7534f, -4679.1396f, 723.76514f);
+                } else {
+                    // TODO: tanaris
+                    point = null;
+                }
+                List<Graph.Vertex> shortestPath = graph.getShortestPath(wowInstance.getPlayer().getCoordinates(), point);
+                boolean success = true;
+                for (Graph.Vertex vertex : shortestPath) {
+                    if (!movement.goToNextPoint(vertex.coordinates)) {
+                        success = false;
+                        wowInstance.click(WinKey.D0);
+                    }
+                }
+                Utils.sleep(1000);
+                ctmManager.goTo(shortestPath.get(shortestPath.size() - 1).getCoordinates(), false);
+                for (int i = 0; i < 120; i++) {
+                    wowInstance.click(WinKey.D0, 0L);
+                    Utils.sleep(1000);
+                    if (!wowInstance.getPlayer().isDead()) {
+                        break;
+                    }
+                }
+                Utils.sleep(2000);
+                wowInstance.click(WinKey.D0);
+                Utils.sleep(2000);
+                // cat form
+                wowInstance.click(WinKey.D5);
+                Utils.sleep(2000);
+                // stealth
+                wowInstance.click(WinKey.D4);
+                resetAuction();
+                //screen shot
+                client.sendPhotoAndMessage("reseted auction");
+                if (!success) {
+                    logger.info("couldn't ress, exit");
+                    client.sendPhotoAndMessage("couldn't ress, exit");
+                    ctmManager.stop();
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     void resetOnFirstPage() {
         logger.info("reset auction");
         Utils.sleep(1000);
@@ -337,7 +343,7 @@ public class Buyer {
             objectManager.refillUnits();
             // TODO: take by GUID if stay the same || .filter (lvl = 50) (check neutral auc level)
 
-            Optional<UnitObject> nearestUnitTo = objectManager.getNearestAuctioneer(wowInstance.getPlayer());
+            Optional<UnitObject> nearestUnitTo = objectManager.getNearestAuctioneer(auctionMovement.getAuctionCoordinates());
             if (nearestUnitTo.isPresent()) {
                 UnitObject unitObject = nearestUnitTo.get();
                 logger.info("auctioneer was found, his level:{}", unitObject.getLevel());
@@ -358,7 +364,6 @@ public class Buyer {
                 wowInstance.click(WinKey.S, 52);
                 Utils.sleep(1000);
                 wowInstance.click(WinKey.D2);
-                client.sendPhotoAndMessage(wowInstance.getPlayer().getAccountName() + " reseted auction");
             } else {
                 logger.error("auc wasn't found");
             }
