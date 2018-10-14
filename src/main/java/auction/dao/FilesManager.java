@@ -51,7 +51,9 @@ public class FilesManager implements AuctionDao {
     }
 
     public static void main(String[] args) throws IOException, ParseException {
-        FilesManager filesManager = new FilesManager("history_auction" + File.separator + "alliance", new Client());
+        FilesManager filesManager = new FilesManager(
+            "history_auction" + File.separator + "alliance",
+            new Client("FilesManager"));
         System.out.println(filesManager.getLastDateFromFiles().date);
     }
 
@@ -194,7 +196,7 @@ public class FilesManager implements AuctionDao {
             boolean savedNewFile = addToDataBase(path, tmpFile);
             logger.info("savedNewFile:{}", savedNewFile);
             if (savedNewFile) {
-                client.sendMessageToCharm("successfully saved a new file to:" +
+                client.sendMessage("charm", "successfully saved a new file to:" +
                     WowInstance.getInstance().getPlayer().getFaction());
             }
         } catch (Throwable t) {
