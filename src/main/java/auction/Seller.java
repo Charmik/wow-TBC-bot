@@ -35,7 +35,7 @@ public class Seller {
     }
 
     public void sellAllItemsFromBag() {
-
+        logger.info("start to selling items");
         Map<Integer, Boolean> items = new HashMap<>();
 
         for (int bag = 0; bag < 5; bag++) {
