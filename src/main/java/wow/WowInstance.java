@@ -24,7 +24,7 @@ public final class WowInstance {
     }
 
     private final HWND hwnd;
-    private final WowMemory wowMemory;
+    private WowMemory wowMemory;
 
     private int millisForSleeping = 50;
 
@@ -36,6 +36,7 @@ public final class WowInstance {
 
     public Player getPlayer() {
         // TODO: if doesn't work try to update wowMemory
+        this.wowMemory = new WowMemory(processId);
         return wowMemory.getPlayer();
     }
 
