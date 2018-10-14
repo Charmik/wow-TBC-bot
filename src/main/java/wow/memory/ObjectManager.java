@@ -213,11 +213,10 @@ public final class ObjectManager extends MemoryAware {
             .min(Comparator.comparingDouble(unit -> evaluateDistanceFromTo(playerCoordinates, unit)));
     }
 
-    public Optional<UnitObject> getNearestAuctioneer(Player player) {
-        Coordinates playerCoordinates = get3DCoordsFor(player);
+    public Optional<UnitObject> getNearestAuctioneer(Coordinates coordinates) {
         return units.values().stream()
             .filter(e -> e.getLevel() == 50 && e.getMana() == 0 && e.getTargetGuid() == 0 && e.getHealth() == 100)
-            .min(Comparator.comparingDouble(unit -> evaluateDistanceFromTo(playerCoordinates, unit)));
+            .min(Comparator.comparingDouble(unit -> evaluateDistanceFromTo(coordinates, unit)));
     }
 
     public Optional<UnitObject> getNearestEnemyMob(
