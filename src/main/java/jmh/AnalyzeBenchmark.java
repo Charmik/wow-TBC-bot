@@ -45,7 +45,7 @@ public class AnalyzeBenchmark {
             null,
             new BidManagerImpl(folder + File.separator + "bidHistory.txt"),
             null,
-            new FilesManager(folder, new Client()),
+            new FilesManager(folder, new Client("benchmark")),
             false);
         analyzer.calculate();
     }

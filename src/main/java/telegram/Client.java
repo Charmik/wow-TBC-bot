@@ -23,19 +23,22 @@ public class Client {
     private static final Logger logger = LoggerFactory.getLogger(Client.class);
 
     private final HttpClient httpClient;
+    private final String accountName;
 
-    public Client() {
+    public Client(String accountName) {
+        this.accountName = accountName;
         httpClient = HttpClient.newBuilder().build();
     }
 
     public static void main(String[] args) {
-        Client client = new Client();
-        client.sendPhotoAndMessage("hey");
+        Client client = new Client("testAccount");
+        client.sendPhotoAndMessage("ClientTest");
     }
 
-    public void sendMessageToCharm(String message) {
+    public void sendMessage(String user, String message) {
+        message = accountName + " " + message;
         HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create("http://188.166.162.28:8080/charm/" + message.replace(" ", "%20")))
+            .uri(URI.create("http://188.166.162.28:8080/" + user + "/" + message.replace(" ", "%20")))
             .timeout(Duration.ofMinutes(1))
             .GET()
             .build();
@@ -48,10 +51,11 @@ public class Client {
         }
     }
 
-    public void sendPhotoAndMessage(String message) {
+    public void sendPhotoAndMessage(String user, String message) {
+        message = accountName + " " + message;
         byte[] photo = getScreenshot();
         HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create("http://188.166.162.28:8080/charm/" + message.replace(" ", "%20")))
+            .uri(URI.create("http://188.166.162.28:8080/" + user + "/" + message.replace(" ", "%20")))
             .timeout(Duration.ofMinutes(1))
             .POST(HttpRequest.BodyPublishers.ofByteArray(photo))
             .build();
@@ -62,6 +66,15 @@ public class Client {
         } catch (IOException | InterruptedException e) {
             logger.warn("couldn't send message ", e);
         }
+    }
+
+    public void sendPhotoAndMessage(String message) {
+        if ("drukach1".equals(accountName.toLowerCase())) {
+            sendPhotoAndMessage("shumik", message);
+            return;
+        }
+        sendPhotoAndMessage("charm", message);
+        sendPhotoAndMessage("shumik", message);
     }
 
     private byte[] getScreenshot() {
