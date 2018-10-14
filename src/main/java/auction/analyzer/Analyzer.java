@@ -37,14 +37,13 @@ public class Analyzer {
     private static final int MIN_COUNT_IN_HISTORY = 50;
     private static final double BUYOUT_PERCENT = 0.75;
 
+    private int profit = 5_00_00;
     private final BidManager bidManager;
     private final PriceLogger priceLogger;
     private final FilesManager filesManager;
     private Map<Integer, Statistic> itemIdToStatistics;
     private final WowInstance wowInstance;
     private Map<Integer, List<Item>> currentItemsOnAuction = new HashMap<>();
-
-    private int profit = 5_00_00;
 
     public Analyzer(
         WowInstance wowInstance,
@@ -58,7 +57,7 @@ public class Analyzer {
         this.priceLogger = priceLogger;
         this.filesManager = filesManager;
         if (scanOnlyFirstPage) {
-            profit = 25_00_00;
+            //profit = 25_00_00;
         }
     }
 
@@ -69,7 +68,7 @@ public class Analyzer {
             null,
             new BidManagerImpl(folder + File.separator + "bidHistory.txt"),
             null,
-            new FilesManager(folder, new Client()),
+            new FilesManager(folder, new Client("analyzer")),
             false);
         analyzer.calculate();
         Statistic statistic = analyzer.itemIdToStatistics.get(21886);
@@ -252,6 +251,8 @@ public class Analyzer {
     }
 
     public void calculate() {
+        logger.info("started calculate auction");
+        long startCalculate = System.nanoTime();
         List<Scan> scans = filesManager.getScans();
 
         saveCurrentItemsOnAuction(scans);
@@ -261,6 +262,8 @@ public class Analyzer {
         Map<Integer, List<Item>> idToItems = getItemIdToItems(scans);
         idToItems = savePercentileOfItems(idToItems);
         itemIdToStatistics = getMapWithStatistics(idToItems);
+        logger.info("calculated auction for:{} seconds",
+            TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - startCalculate));
     }
 
     private Map<Integer, List<Item>> getItemIdToItems(List<Scan> scans) {
